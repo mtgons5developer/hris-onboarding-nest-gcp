@@ -36,7 +36,7 @@ Use **NestJS (TypeScript)** with **PostgreSQL** as the system of record for this
 
 ## ADR-002: GCP + Firebase hosting, not AWS
 
-**Status:** Accepted  
+**Status:** Superseded 2026-08-26 by [ADR-009](#adr-009-oidc-idp--keycloak-local-cognito-later)  
 **Date:** 2026-08-26
 
 ### Context
@@ -103,7 +103,7 @@ Alerto24 uses Firestore heavily. HRIS domains need strong consistency for employ
 
 ## ADR-004: Firebase Auth / Identity Platform instead of Keycloak or Entra
 
-**Status:** Accepted  
+**Status:** Superseded 2026-08-26 by [ADR-009](#adr-009-oidc-idp--keycloak-local-cognito-later)  
 **Date:** 2026-08-26
 
 ### Context
@@ -204,4 +204,53 @@ Expose **REST** via Nest Controllers, Services, DTOs (class-validator). OpenAPI/
 
 ### Decision
 
-Docs live under `Documents/A24/HRIS-Onboarding-Nest-GCP/`. Implementation repo (next conversation) should be a **sibling** under `~/repos/` (e.g. `hris-onboarding-nest-gcp`), **not** inside `alerto24_mobile` as a live backend.
+Docs live under `Documents/A24/HRIS-Onboarding-Nest-GCP/`. Implementation repo should be a **sibling** under `~/repos/` (e.g. `hris-onboarding-nest-gcp`), **not** inside `alerto24_mobile` as a live backend.
+
+---
+
+## ADR-009: OIDC IdP — Keycloak local, Cognito later
+
+**Status:** Accepted  
+**Date:** 2026-08-26  
+**Supersedes:** ADR-002 (hosting/auth), ADR-004 (Firebase Auth)
+
+### Context
+
+The original lab used Firebase Auth for speed on GCP. A target role description requires **Keycloak or Azure Entra**, Nest REST layering, PostgreSQL, and IAM/RBAC. Full AWS (RDS, App Runner) is **not** lastingly free; this machine had no AWS CLI.
+
+### Decision
+
+1. Nest **`JwtAuthGuard`** verifies OIDC JWTs with **JWKS** (`jose`). Same code path for Keycloak, Cognito, and Entra.
+2. **Keycloak 26** in Docker Compose is the $0 local IdP (realm roles = `UserRole`).
+3. **Amazon Cognito** (50k MAU always-free) is the optional AWS hosted IdP — Terraform in `infra/aws-cognito/` only; **no RDS**.
+4. Keep **Docker Postgres** as the system of record until a billed RDS/Cloud SQL decision is explicit.
+5. `AUTH_DEV_BYPASS` remains for tests and first-run (localhost Host only).
+6. Public SPAs use **authorization code + PKCE** against Cognito Hosted UI.
+
+### Consequences
+
+- Interview story matches Controller/Service/DTO + Keycloak groups/roles + Postgres.
+- Switching IdP is env vars (`OIDC_ISSUER`, `OIDC_JWKS_URI`), not a Nest rewrite.
+- Password grant is lab-only (Keycloak Compose); production uses authorization code + PKCE.
+
+See [docs/AWS_AND_IAM.md](../AWS_AND_IAM.md).
+
+---
+
+## ADR-010: Cloudflare for production web; Flutter mobile later
+
+**Status:** Accepted  
+**Date:** 2026-08-26
+
+### Context
+
+Ernesto has spare domains and a Cloudflare account. Nest cannot run on Cloudflare Pages. Android/iOS is needed later, not in the first production cut.
+
+### Decision
+
+1. **Cloudflare Pages** hosts `admin.getlakbay.com` and `onboarding.getlakbay.com`.
+2. **Cloudflare DNS + proxy** fronts `api.getlakbay.com` to a Node origin (Tunnel, Fly, Cloud Run, or VPS). Postgres stays off Cloudflare.
+3. Lab apex is **`getlakbay.com`**. Keep this off the Alerto24 emergency hostname.
+4. **Flutter** in `apps/mobile/` later, same Nest API, OIDC client `hris-mobile` with PKCE.
+
+See [docs/PRODUCTION_CLOUDFLARE.md](../PRODUCTION_CLOUDFLARE.md).

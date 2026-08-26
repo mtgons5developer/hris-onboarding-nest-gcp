@@ -2,14 +2,15 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { corsAllowlist, isAllowedCorsOrigin } from './cors-origins';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: false });
-  const origins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173,http://localhost:5174')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  app.enableCors({ origin: origins, credentials: true });
+  const origins = corsAllowlist(process.env.CORS_ORIGINS);
+  app.enableCors({
+    origin: (origin, cb) => cb(null, isAllowedCorsOrigin(origin, origins)),
+    credentials: true,
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

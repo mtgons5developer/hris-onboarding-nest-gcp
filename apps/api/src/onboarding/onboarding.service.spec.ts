@@ -34,10 +34,10 @@ function makeService(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
   const audit = { append: jest.fn() };
-  const firebase = { setRoleClaim: jest.fn() };
+  const idp = { setRoleClaim: jest.fn() };
   const notify = { sendInvite: jest.fn() };
   return {
-    service: new OnboardingService(prisma, audit as never, firebase as never, notify as never),
+    service: new OnboardingService(prisma, audit as never, idp as never, notify as never),
     prisma,
     audit,
     notify,
@@ -93,5 +93,56 @@ describe('OnboardingService', () => {
       documents: [],
     });
     await expect(service.getCase('c2', employee)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('approve completes the case and activates the employee (candidate → active)', async () => {
+    const { service, prisma, audit } = makeService();
+    prisma.onboardingCase.findUnique.mockResolvedValue({
+      id: 'c1',
+      status: CaseStatus.pending_hr,
+      employeeId: 'emp-1',
+      employee: { managerEmployeeId: null, status: 'candidate' },
+      tasks: [],
+      documents: [],
+    });
+    prisma.employee.update.mockResolvedValue({ id: 'emp-1', status: 'active' });
+    prisma.onboardingCase.update.mockImplementation(({ data }: { data: { status: CaseStatus } }) => ({
+      id: 'c1',
+      status: data.status,
+      employeeId: 'emp-1',
+      employee: { managerEmployeeId: null, status: 'active' },
+      tasks: [],
+      documents: [],
+    }));
+
+    const result = await service.approve('c1', hr);
+    expect(prisma.employee.update).toHaveBeenCalledWith({
+      where: { id: 'emp-1' },
+      data: { status: 'active' },
+    });
+    expect(result.status).toBe(CaseStatus.completed);
+    expect(audit.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'CASE_APPROVED',
+        afterJson: { status: CaseStatus.completed, employeeStatus: 'active' },
+      }),
+    );
+  });
+
+  it('managers only list cases for their reports', async () => {
+    const manager = {
+      id: 'm-user',
+      role: UserRole.manager,
+      employeeId: 'maya-emp',
+      tenantId: 1,
+    } as never;
+    const { service, prisma } = makeService();
+    prisma.onboardingCase.findMany.mockResolvedValue([]);
+    await service.listCases(manager);
+    expect(prisma.onboardingCase.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { employee: { managerEmployeeId: 'maya-emp' } },
+      }),
+    );
   });
 });

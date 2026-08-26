@@ -1,0 +1,93 @@
+{
+  "id": "hris",
+  "realm": "hris",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "hr_admin" },
+      { "name": "manager" },
+      { "name": "employee" },
+      { "name": "system_admin" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "hris-web",
+      "name": "HRIS portals",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "redirectUris": ["http://localhost:5173/*", "http://localhost:5174/*"],
+      "webOrigins": ["http://localhost:5173", "http://localhost:5174"],
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true,
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"],
+      "optionalClientScopes": ["offline_access"]
+    },
+    {
+      "clientId": "hris-mobile",
+      "name": "HRIS Flutter",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "redirectUris": ["com.mtgons5.hris.onboarding://callback", "hris://auth"],
+      "webOrigins": ["+"],
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true,
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"],
+      "optionalClientScopes": ["offline_access"]
+    }
+  ],
+  "users": [
+    {
+      "username": "hr@lab.local",
+      "email": "hr@lab.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Harper",
+      "lastName": "Reyes",
+      "credentials": [{ "type": "password", "value": "LabPass123!", "temporary": false }],
+      "realmRoles": ["hr_admin"]
+    },
+    {
+      "username": "maya.santos@lab.local",
+      "email": "maya.santos@lab.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Maya",
+      "lastName": "Santos",
+      "credentials": [{ "type": "password", "value": "LabPass123!", "temporary": false }],
+      "realmRoles": ["manager"]
+    },
+    {
+      "username": "luis.reyes@lab.local",
+      "email": "luis.reyes@lab.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Luis",
+      "lastName": "Reyes",
+      "credentials": [{ "type": "password", "value": "LabPass123!", "temporary": false }],
+      "realmRoles": ["employee"]
+    },
+    {
+      "username": "sysadmin@lab.local",
+      "email": "sysadmin@lab.local",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "System",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "LabPass123!", "temporary": false }],
+      "realmRoles": ["system_admin"]
+    }
+  ]
+}

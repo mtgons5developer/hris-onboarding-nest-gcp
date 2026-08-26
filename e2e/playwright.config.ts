@@ -35,6 +35,10 @@ export default defineConfig({
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,
           cwd: '..',
+          env: {
+            ...process.env,
+            VITE_AUTH_DEV_BYPASS: 'true',
+          },
         },
         {
           command: 'npm run dev -w @hris/web-onboarding',
@@ -42,6 +46,10 @@ export default defineConfig({
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,
           cwd: '..',
+          env: {
+            ...process.env,
+            VITE_AUTH_DEV_BYPASS: 'true',
+          },
         },
       ],
 });

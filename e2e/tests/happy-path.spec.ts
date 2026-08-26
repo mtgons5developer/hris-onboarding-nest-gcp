@@ -57,7 +57,9 @@ test('invite → complete → upload → submit → approve', async ({ page, req
 
   const approved = await request.post(`${API}/api/v1/onboarding/cases/${c.id}/approve`, { headers: hr });
   expect(approved.ok()).toBeTruthy();
-  expect((await approved.json()).status).toBe('completed');
+  const approvedBody = await approved.json();
+  expect(approvedBody.status).toBe('completed');
+  expect(approvedBody.employee.status).toBe('active');
 
   await page.goto('http://localhost:5173');
   await page.getByTestId('login-dev:hr_admin').click();

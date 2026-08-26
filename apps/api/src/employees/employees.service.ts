@@ -3,7 +3,7 @@ import { PrismaService } from '../database/prisma.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { AuditService } from '../audit/audit.service';
-import { User } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 
 @Injectable()
 export class EmployeesService {
@@ -12,10 +12,18 @@ export class EmployeesService {
     private readonly audit: AuditService,
   ) {}
 
-  list() {
+  list(actor: User) {
+    const where =
+      actor.role === UserRole.manager && actor.employeeId
+        ? { managerEmployeeId: actor.employeeId }
+        : {};
     return this.prisma.employee.findMany({
+      where,
       orderBy: { employeeNumber: 'asc' },
-      include: { user: { select: { id: true, role: true, email: true } } },
+      include: {
+        user: { select: { id: true, role: true, email: true, idpSub: true } },
+        manager: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
   }
 
@@ -29,7 +37,18 @@ export class EmployeesService {
   }
 
   async create(dto: CreateEmployeeDto, actor: User) {
-    const emp = await this.prisma.employee.create({ data: dto });
+    const emp = await this.prisma.employee.create({
+      data: {
+        employeeNumber: dto.employeeNumber,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        workEmail: dto.workEmail,
+        department: dto.department,
+        managerEmployeeId: dto.managerEmployeeId,
+        status: dto.status,
+        hiredAt: dto.hiredAt ? new Date(dto.hiredAt) : undefined,
+      },
+    });
     await this.audit.append({
       actorUserId: actor.id,
       action: 'EMPLOYEE_CREATED',
@@ -42,7 +61,14 @@ export class EmployeesService {
 
   async update(id: string, dto: UpdateEmployeeDto, actor: User) {
     const before = await this.get(id);
-    const emp = await this.prisma.employee.update({ where: { id }, data: dto });
+    const { hiredAt, ...rest } = dto;
+    const emp = await this.prisma.employee.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(hiredAt ? { hiredAt: new Date(hiredAt) } : {}),
+      },
+    });
     await this.audit.append({
       actorUserId: actor.id,
       action: 'EMPLOYEE_UPDATED',

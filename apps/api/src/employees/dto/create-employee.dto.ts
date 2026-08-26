@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsDateString, IsEmail, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { EmployeeStatus } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -33,4 +33,9 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsEnum(EmployeeStatus)
   status?: EmployeeStatus;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  hiredAt?: string;
 }

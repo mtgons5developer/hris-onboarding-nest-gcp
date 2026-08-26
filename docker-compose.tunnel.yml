@@ -1,0 +1,16 @@
+# Optional overlay. Preferred lab path is host `cloudflared` (see infra/cloudflare/README.md).
+#
+#   export CLOUDFLARE_TUNNEL_TOKEN=...   # dashboard token; never commit
+#   docker compose -f docker-compose.yml -f docker-compose.tunnel.yml up -d
+#
+# Remotely managed Public Hostname must target http://host.docker.internal:3000
+# because Nest runs on the host, not in Compose.
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: hris-lab-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

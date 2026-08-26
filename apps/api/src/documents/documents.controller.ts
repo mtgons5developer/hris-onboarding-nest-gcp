@@ -14,7 +14,7 @@ import { Request } from 'express';
 import { DocumentsService } from './documents.service';
 import { RegisterDocumentDto } from './dto/register-document.dto';
 import { ReviewDocumentDto } from './dto/review-document.dto';
-import { FirebaseAuthGuard } from '../identity/firebase-auth.guard';
+import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { Roles } from '../identity/roles.decorator';
 import { CurrentUser } from '../identity/current-user.decorator';
@@ -26,7 +26,7 @@ export class DocumentsController {
   constructor(private readonly documents: DocumentsService) {}
 
   @Post()
-  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   register(@Body() dto: RegisterDocumentDto, @CurrentUser() user: User) {
     return this.documents.register(dto, user);
   }
@@ -43,7 +43,7 @@ export class DocumentsController {
   }
 
   @Post(':id/review')
-  @UseGuards(FirebaseAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.hr_admin)
   review(@Param('id') id: string, @Body() dto: ReviewDocumentDto, @CurrentUser() user: User) {
     return this.documents.review(id, dto.reviewStatus as ReviewStatus, user);

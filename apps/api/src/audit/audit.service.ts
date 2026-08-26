@@ -29,7 +29,7 @@ export class AuditService {
   }
 
   async list(params: { entityType?: string; entityId?: string; take?: number }) {
-    return this.prisma.auditLog.findMany({
+    const rows = await this.prisma.auditLog.findMany({
       where: {
         entityType: params.entityType,
         entityId: params.entityId,
@@ -38,5 +38,6 @@ export class AuditService {
       take: params.take ?? 100,
       include: { actor: { select: { email: true, displayName: true, role: true } } },
     });
+    return rows.map((row) => ({ ...row, id: row.id.toString() }));
   }
 }

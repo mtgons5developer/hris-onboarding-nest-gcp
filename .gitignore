@@ -21,8 +21,24 @@ firebase-adminsdk*.json
 playwright-report/
 test-results/
 blob-report/
+**/.terraform/
+*.tfstate
+*.tfstate.*
 infra/terraform/.terraform/
 infra/terraform/*.tfstate
 infra/terraform/*.tfstate.*
 infra/terraform/*.tfvars
 !infra/terraform/*.tfvars.example
+infra/aws-cognito/.terraform/
+infra/aws-cognito/*.tfstate
+infra/aws-cognito/*.tfstate.*
+infra/aws-cognito/*.tfvars
+!infra/aws-cognito/*.tfvars.example
+# Cloudflare Tunnel local config (credentials stay in ~/.cloudflared/)
+infra/cloudflare/tunnel.yml
+
+# Flutter (apps/mobile is not an npm workspace)
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/build/
+apps/mobile/.env

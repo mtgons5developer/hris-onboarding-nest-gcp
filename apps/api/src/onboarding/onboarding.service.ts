@@ -15,7 +15,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { FirebaseAdminService } from '../identity/firebase-admin.service';
+import { IdentityProviderService } from '../identity/identity-provider.service';
 import { NOTIFICATION_PORT, NotificationPort } from '../notifications/notification.port';
 import { assertCaseTransition } from './case-state.machine';
 import { CreateCaseDto } from './dto/create-case.dto';
@@ -29,7 +29,12 @@ const DEFAULT_TASKS: Prisma.OnboardingTaskCreateWithoutCaseInput[] = [
 ];
 
 const caseInclude = {
-  employee: true,
+  employee: {
+    include: {
+      user: { select: { id: true, role: true, email: true, idpSub: true } },
+      manager: { select: { id: true, firstName: true, lastName: true } },
+    },
+  },
   offer: true,
   tasks: { orderBy: { sortOrder: 'asc' as const } },
   documents: true,
@@ -40,7 +45,7 @@ export class OnboardingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    private readonly firebase: FirebaseAdminService,
+    private readonly idp: IdentityProviderService,
     @Inject(NOTIFICATION_PORT) private readonly notify: NotificationPort,
   ) {}
 
@@ -113,7 +118,7 @@ export class OnboardingService {
         where: { email: employee.workEmail },
         update: { employeeId: employee.id, role: UserRole.employee },
         create: {
-          firebaseUid: `pending-${employee.id}`,
+          idpSub: `pending-${employee.id}`,
           email: employee.workEmail,
           displayName: `${employee.firstName} ${employee.lastName}`,
           role: UserRole.employee,
@@ -122,7 +127,7 @@ export class OnboardingService {
       });
     }
 
-    await this.firebase.setRoleClaim(user.firebaseUid, UserRole.employee);
+    await this.idp.setRoleClaim(user.idpSub, UserRole.employee);
     await this.notify.sendInvite({
       to: employee.workEmail,
       caseId: onboardingCase.id,
@@ -209,22 +214,23 @@ export class OnboardingService {
   async approve(id: string, actor: User) {
     const onboardingCase = await this.getCase(id, actor);
     assertCaseTransition(onboardingCase.status, CaseStatus.completed);
+    // Activate first so the returned case include shows employee.status = active (day 1).
+    await this.prisma.employee.update({
+      where: { id: onboardingCase.employeeId },
+      data: { status: 'active' },
+    });
     const updated = await this.prisma.onboardingCase.update({
       where: { id },
       data: { status: CaseStatus.completed, completedAt: new Date() },
       include: caseInclude,
-    });
-    await this.prisma.employee.update({
-      where: { id: onboardingCase.employeeId },
-      data: { status: 'active' },
     });
     await this.audit.append({
       actorUserId: actor.id,
       action: 'CASE_APPROVED',
       entityType: 'onboarding_case',
       entityId: id,
-      beforeJson: { status: onboardingCase.status },
-      afterJson: { status: updated.status },
+      beforeJson: { status: onboardingCase.status, employeeStatus: onboardingCase.employee.status },
+      afterJson: { status: updated.status, employeeStatus: 'active' },
     });
     return updated;
   }

@@ -1,14 +1,14 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { FirebaseAuthGuard } from '../identity/firebase-auth.guard';
+import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { Roles } from '../identity/roles.decorator';
 import { AuditService } from './audit.service';
 
 @ApiTags('audit')
 @ApiBearerAuth()
-@UseGuards(FirebaseAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.hr_admin, UserRole.system_admin)
 @Controller('api/v1/audit')
 export class AuditController {

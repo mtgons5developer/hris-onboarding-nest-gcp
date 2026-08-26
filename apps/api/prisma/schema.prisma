@@ -56,7 +56,7 @@ enum ReviewStatus {
 
 model User {
   id           String   @id @default(uuid())
-  firebaseUid  String   @unique @map("firebase_uid")
+  idpSub       String   @unique @map("idp_sub")
   email        String   @unique
   displayName  String   @map("display_name")
   role         UserRole
@@ -70,7 +70,7 @@ model User {
   uploads       DocumentMeta[]
   auditLogs     AuditLog[]
 
-  @@index([firebaseUid])
+  @@index([idpSub])
   @@map("users")
 }
 

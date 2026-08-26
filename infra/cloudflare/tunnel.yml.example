@@ -1,0 +1,11 @@
+# Cloudflare Tunnel — lab API origin (api.getlakbay.com → Nest on this machine).
+# Copy to tunnel.yml (gitignored) after `cloudflared tunnel create hris-api`.
+# Never commit credentials, tokens, or the copied tunnel.yml.
+
+tunnel: TUNNEL_ID
+credentials-file: /Users/YOU/.cloudflared/TUNNEL_ID.json
+
+ingress:
+  - hostname: api.getlakbay.com
+    service: http://localhost:3000
+  - service: http_status:404

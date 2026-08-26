@@ -4,14 +4,14 @@ import { User, UserRole } from '@prisma/client';
 import { OnboardingService } from './onboarding.service';
 import { CreateCaseDto } from './dto/create-case.dto';
 import { PatchTaskDto } from './dto/patch-task.dto';
-import { FirebaseAuthGuard } from '../identity/firebase-auth.guard';
+import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { Roles } from '../identity/roles.decorator';
 import { CurrentUser } from '../identity/current-user.decorator';
 
 @ApiTags('onboarding')
 @ApiBearerAuth()
-@UseGuards(FirebaseAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('api/v1/onboarding')
 export class OnboardingController {
   constructor(private readonly onboarding: OnboardingService) {}

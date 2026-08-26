@@ -58,7 +58,7 @@ async function main() {
 
   const hr = await prisma.user.create({
     data: {
-      firebaseUid: 'dev-hr-admin',
+      idpSub: 'dev-hr-admin',
       email: 'hr@lab.local',
       displayName: 'Harper Reyes (HR)',
       role: UserRole.hr_admin,
@@ -67,7 +67,7 @@ async function main() {
 
   const managerUser = await prisma.user.create({
     data: {
-      firebaseUid: 'dev-manager',
+      idpSub: 'dev-manager',
       email: 'maya.santos@lab.local',
       displayName: 'Maya Santos',
       role: UserRole.manager,
@@ -77,7 +77,7 @@ async function main() {
 
   const employeeUser = await prisma.user.create({
     data: {
-      firebaseUid: 'dev-employee',
+      idpSub: 'dev-employee',
       email: 'luis.reyes@lab.local',
       displayName: 'Luis Reyes',
       role: UserRole.employee,
@@ -87,7 +87,7 @@ async function main() {
 
   await prisma.user.create({
     data: {
-      firebaseUid: 'dev-system-admin',
+      idpSub: 'dev-system-admin',
       email: 'sysadmin@lab.local',
       displayName: 'System Admin',
       role: UserRole.system_admin,

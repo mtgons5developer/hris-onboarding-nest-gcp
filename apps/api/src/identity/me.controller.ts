@@ -1,12 +1,12 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from './current-user.decorator';
-import { FirebaseAuthGuard } from './firebase-auth.guard';
+import { JwtAuthGuard } from './jwt-auth.guard';
 import { User } from '@prisma/client';
 
 @ApiTags('identity')
 @ApiBearerAuth()
-@UseGuards(FirebaseAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller('api/v1')
 export class MeController {
   @Get('me')
@@ -18,6 +18,7 @@ export class MeController {
       role: user.role,
       employeeId: user.employeeId,
       tenantId: user.tenantId,
+      idpSub: user.idpSub,
     };
   }
 }

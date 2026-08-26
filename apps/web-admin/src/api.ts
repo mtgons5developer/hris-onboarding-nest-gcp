@@ -30,3 +30,23 @@ export const DEV_LOGINS = [
   { label: 'Maya Santos — Manager', token: 'dev:manager' },
   { label: 'System admin', token: 'dev:system_admin' },
 ];
+
+/** Local Keycloak password grant only. Public Pages use Hosted UI PKCE (`oidc.ts`). */
+export async function loginWithOidc(username: string, password: string): Promise<string> {
+  const url = import.meta.env.VITE_OIDC_TOKEN_URL;
+  const clientId = import.meta.env.VITE_OIDC_CLIENT_ID ?? 'hris-web';
+  if (!url) throw new Error('VITE_OIDC_TOKEN_URL is not set');
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'password',
+      client_id: clientId,
+      username,
+      password,
+    }),
+  });
+  if (!res.ok) throw new Error(`IdP login failed (${res.status})`);
+  const json = (await res.json()) as { access_token: string };
+  return json.access_token;
+}

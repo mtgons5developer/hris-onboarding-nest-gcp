@@ -4,22 +4,22 @@ import { User, UserRole } from '@prisma/client';
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { FirebaseAuthGuard } from '../identity/firebase-auth.guard';
+import { JwtAuthGuard } from '../identity/jwt-auth.guard';
 import { RolesGuard } from '../identity/roles.guard';
 import { Roles } from '../identity/roles.decorator';
 import { CurrentUser } from '../identity/current-user.decorator';
 
 @ApiTags('employees')
 @ApiBearerAuth()
-@UseGuards(FirebaseAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('api/v1/employees')
 export class EmployeesController {
   constructor(private readonly employees: EmployeesService) {}
 
   @Get()
   @Roles(UserRole.hr_admin, UserRole.system_admin, UserRole.manager)
-  list() {
-    return this.employees.list();
+  list(@CurrentUser() user: User) {
+    return this.employees.list(user);
   }
 
   @Get(':id')
