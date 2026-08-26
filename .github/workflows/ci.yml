@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hris
+          POSTGRES_PASSWORD: hris
+          POSTGRES_DB: hris_lab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hris -d hris_lab"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://hris:hris@localhost:5432/hris_lab?schema=public
+      AUTH_DEV_BYPASS: "true"
+      STORAGE_DRIVER: local
+      LOCAL_UPLOAD_DIR: ../../data/uploads
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run prisma:migrate
+      - run: npm run prisma:seed
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build -w @hris/api
+      - run: npm run build -w @hris/web-admin
+      - run: npm run build -w @hris/web-onboarding
+
+  e2e:
+    needs: lint-test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hris
+          POSTGRES_PASSWORD: hris
+          POSTGRES_DB: hris_lab
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hris -d hris_lab"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://hris:hris@localhost:5432/hris_lab?schema=public
+      AUTH_DEV_BYPASS: "true"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - run: npm run prisma:generate && npm run prisma:migrate && npm run prisma:seed
+      - run: npm run test:e2e

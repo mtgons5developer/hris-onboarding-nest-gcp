@@ -1,0 +1,42 @@
+# Deploy Nest API to Cloud Run. Does not run on every push — requires lab GCP secrets.
+# See docs/GCP_SETUP.md for project bootstrap and required GitHub secrets.
+
+name: Deploy API (Cloud Run)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "api-v*"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      IMAGE: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/hris-lab/api:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build and push
+        run: |
+          gcloud auth configure-docker "${{ secrets.GCP_REGION }}-docker.pkg.dev" --quiet
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+      - name: Deploy Cloud Run
+        run: |
+          gcloud run deploy hris-api \
+            --image "$IMAGE" \
+            --region "${{ secrets.GCP_REGION }}" \
+            --project "${{ secrets.GCP_PROJECT_ID }}" \
+            --allow-unauthenticated \
+            --set-secrets=DATABASE_URL=hris-database-url:latest \
+            --set-env-vars=AUTH_DEV_BYPASS=false,STORAGE_DRIVER=gcs,GCS_BUCKET=${{ secrets.GCS_BUCKET }} \
+            --min-instances=0 \
+            --max-instances=3

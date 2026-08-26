@@ -1,0 +1,31 @@
+{
+  "name": "hris-onboarding-nest-gcp",
+  "private": true,
+  "description": "Lab / portfolio HRIS + employee onboarding portals: NestJS, PostgreSQL, Firebase Auth, React, GCP.",
+  "workspaces": [
+    "apps/api",
+    "apps/web-admin",
+    "apps/web-onboarding",
+    "packages/shared",
+    "e2e"
+  ],
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d",
+    "prisma:generate": "npm run prisma:generate -w @hris/api",
+    "prisma:migrate": "npm run prisma:migrate -w @hris/api",
+    "prisma:seed": "npm run prisma:seed -w @hris/api",
+    "dev:api": "npm run start:dev -w @hris/api",
+    "dev:admin": "npm run dev -w @hris/web-admin",
+    "dev:onboarding": "npm run dev -w @hris/web-onboarding",
+    "build": "npm run build -w @hris/api && npm run build -w @hris/web-admin && npm run build -w @hris/web-onboarding",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test -w @hris/api",
+    "test:e2e": "npm run test -w @hris/e2e",
+    "start:all": "npm run db:up && npm run prisma:migrate && npm run prisma:seed && echo 'Run: npm run dev:api  |  npm run dev:admin  |  npm run dev:onboarding'"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

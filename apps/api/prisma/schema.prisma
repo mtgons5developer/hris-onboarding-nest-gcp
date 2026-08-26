@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  hr_admin
+  manager
+  employee
+  system_admin
+}
+
+enum EmployeeStatus {
+  candidate
+  active
+  terminated
+}
+
+enum OfferStatus {
+  draft
+  sent
+  accepted
+  withdrawn
+}
+
+enum CaseStatus {
+  invited
+  in_progress
+  pending_hr
+  completed
+  cancelled
+}
+
+enum TaskAssigneeRole {
+  employee
+  manager
+  hr
+}
+
+enum TaskStatus {
+  pending
+  done
+  waived
+  rejected
+}
+
+enum ReviewStatus {
+  pending
+  approved
+  rejected
+}
+
+model User {
+  id           String   @id @default(uuid())
+  firebaseUid  String   @unique @map("firebase_uid")
+  email        String   @unique
+  displayName  String   @map("display_name")
+  role         UserRole
+  employeeId   String?  @unique @map("employee_id")
+  tenantId     Int      @default(1) @map("tenant_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  employee      Employee?      @relation(fields: [employeeId], references: [id])
+  createdOffers Offer[]        @relation("OfferCreatedBy")
+  uploads       DocumentMeta[]
+  auditLogs     AuditLog[]
+
+  @@index([firebaseUid])
+  @@map("users")
+}
+
+model Employee {
+  id                String         @id @default(uuid())
+  employeeNumber    String         @unique @map("employee_number")
+  firstName         String         @map("first_name")
+  lastName          String         @map("last_name")
+  workEmail         String         @unique @map("work_email")
+  managerEmployeeId String?        @map("manager_employee_id")
+  department        String?
+  status            EmployeeStatus @default(candidate)
+  hiredAt           DateTime?      @map("hired_at")
+  tenantId          Int            @default(1) @map("tenant_id")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  manager  Employee?        @relation("EmployeeManager", fields: [managerEmployeeId], references: [id])
+  reports  Employee[]       @relation("EmployeeManager")
+  user     User?
+  offers   Offer[]
+  cases    OnboardingCase[]
+
+  @@map("employees")
+}
+
+model Offer {
+  id              String      @id @default(uuid())
+  employeeId      String      @map("employee_id")
+  title           String
+  startDate       DateTime    @map("start_date")
+  status          OfferStatus @default(draft)
+  createdByUserId String      @map("created_by_user_id")
+  tenantId        Int         @default(1) @map("tenant_id")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  employee Employee         @relation(fields: [employeeId], references: [id])
+  createdBy User            @relation("OfferCreatedBy", fields: [createdByUserId], references: [id])
+  cases     OnboardingCase[]
+
+  @@map("offers")
+}
+
+model OnboardingCase {
+  id          String     @id @default(uuid())
+  employeeId  String     @map("employee_id")
+  offerId     String?    @map("offer_id")
+  status      CaseStatus @default(invited)
+  invitedAt   DateTime?  @map("invited_at")
+  completedAt DateTime?  @map("completed_at")
+  tenantId    Int        @default(1) @map("tenant_id")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  employee  Employee         @relation(fields: [employeeId], references: [id])
+  offer     Offer?           @relation(fields: [offerId], references: [id])
+  tasks     OnboardingTask[]
+  documents DocumentMeta[]
+
+  @@index([status])
+  @@map("onboarding_cases")
+}
+
+model OnboardingTask {
+  id            String           @id @default(uuid())
+  caseId        String           @map("case_id")
+  code          String
+  title         String
+  assigneeRole  TaskAssigneeRole @map("assignee_role")
+  status        TaskStatus       @default(pending)
+  dueAt         DateTime?        @map("due_at")
+  completedAt   DateTime?        @map("completed_at")
+  sortOrder     Int              @map("sort_order")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  case      OnboardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  documents DocumentMeta[]
+
+  @@index([caseId])
+  @@map("onboarding_tasks")
+}
+
+model DocumentMeta {
+  id                String       @id @default(uuid())
+  caseId            String       @map("case_id")
+  taskId            String?      @map("task_id")
+  gcsBucket         String       @map("gcs_bucket")
+  gcsObjectKey      String       @map("gcs_object_key")
+  contentType       String       @map("content_type")
+  originalFilename  String       @map("original_filename")
+  uploadedByUserId  String       @map("uploaded_by_user_id")
+  reviewStatus      ReviewStatus @default(pending) @map("review_status")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  case       OnboardingCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  task       OnboardingTask? @relation(fields: [taskId], references: [id])
+  uploadedBy User            @relation(fields: [uploadedByUserId], references: [id])
+
+  @@map("documents_meta")
+}
+
+model AuditLog {
+  id          BigInt   @id @default(autoincrement())
+  actorUserId String?  @map("actor_user_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  beforeJson  Json?    @map("before_json")
+  afterJson   Json?    @map("after_json")
+  ip          String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
