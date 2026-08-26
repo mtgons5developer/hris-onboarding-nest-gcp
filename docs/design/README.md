@@ -1,6 +1,6 @@
 # HRIS + Onboarding Portals (NestJS + GCP Lab)
 
-**Status:** Phase 0–4 scaffold in sibling repo `~/repos/hris-onboarding-nest-gcp` (public GitHub).  
+**Status:** Phase 0–4 scaffold in sibling repo [`hris-onboarding-nest-gcp`](https://github.com/mtgons5developer/hris-onboarding-nest-gcp).  
 **Audience:** Ernesto (portfolio + NestJS/PostgreSQL learning aligned with Emapta-like HRIS/onboarding domains).
 
 This is a **lab / portfolio** project inspired by HRIS and employee onboarding workflows. It is **not** an Emapta client deliverable and is **not** part of Alerto24 production. Alerto24 remains on Firebase Functions for the emergency product; this lab targets NestJS + Cloud SQL on a separate GCP/Firebase project.
@@ -28,4 +28,4 @@ This is a **lab / portfolio** project inspired by HRIS and employee onboarding w
 
 ## Next step
 
-Implementation lives at `~/repos/hris-onboarding-nest-gcp`. Follow that README to run Compose + Nest + Vite. Design pack here remains the source of truth for goals/ADRs.
+Implementation lives at [`~/repos/hris-onboarding-nest-gcp`](https://github.com/mtgons5developer/hris-onboarding-nest-gcp). Follow that README to run Compose + Nest + Vite. Design pack here remains the source of truth for goals/ADRs.

@@ -2,6 +2,8 @@
 
 Portfolio / learning lab for **NestJS module architecture** and **PostgreSQL on Cloud SQL**, with **Firebase Auth** and two React portals. Inspired by HRIS + employee onboarding workflows — **not** an Emapta deliverable and **not** part of Alerto24 production.
 
+**Public repo:** https://github.com/mtgons5developer/hris-onboarding-nest-gcp
+
 | | |
 |---|---|
 | API | NestJS on Cloud Run (local `:3000`) |
