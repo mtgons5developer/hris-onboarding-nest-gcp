@@ -89,16 +89,18 @@ Flutter callbacks on `hris-mobile` (do not add these to `hris-web`): `hris://aut
 | `logout_url` | `VITE_OIDC_LOGOUT_URL` |
 | — | `VITE_LANDING_URL` (post-sign-out redirect; default `https://getlakbay.com`) |
 
-Local Docker (Keycloak still in Compose; bypass is localhost-only):
+Local Docker (Cognito + Keycloak dual issuers; bypass is localhost-only). Pair lists by index — same order in `OIDC_ISSUER` and `OIDC_JWKS_URI`:
 
 ```
 AUTH_DEV_BYPASS=true
-OIDC_ISSUER=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG
-OIDC_JWKS_URI=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG/.well-known/jwks.json
-OIDC_AUDIENCE=604evnknhtitgpltjdo90ghm7l,4ij7jqehds0m6s1ubss1aj7710
+OIDC_ISSUER=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG,http://localhost:8082/realms/hris
+OIDC_JWKS_URI=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG/.well-known/jwks.json,http://localhost:8082/realms/hris/protocol/openid-connect/certs
+OIDC_AUDIENCE=604evnknhtitgpltjdo90ghm7l,4ij7jqehds0m6s1ubss1aj7710,hris-web,hris-mobile,account
 OIDC_CLIENT_ID=604evnknhtitgpltjdo90ghm7l
 OIDC_TOKEN_URL=https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/token
 ```
+
+Tunnel-only Nest can drop the Keycloak pair and keep Cognito alone. Restart Nest after `.env` changes.
 
 Vite (local `.env` or Cloudflare Pages Production — bake at `npm run build`):
 
@@ -113,7 +115,14 @@ VITE_OIDC_LOGOUT_URL=https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.
 VITE_LANDING_URL=https://getlakbay.com
 ```
 
-Local Vite can keep `VITE_API_BASE_URL=http://localhost:3000` and `VITE_AUTH_DEV_BYPASS=true` so Harper still appears on localhost only.
+Local Vite can keep `VITE_API_BASE_URL=http://localhost:3000` and `VITE_AUTH_DEV_BYPASS=true` so Harper still appears on localhost only. Optional Keycloak password-grant (localhost **Sign in with Keycloak** only — do not point these at Cognito):
+
+```
+# VITE_KEYCLOAK_TOKEN_URL=http://localhost:8082/realms/hris/protocol/openid-connect/token
+# VITE_KEYCLOAK_CLIENT_ID=hris-web
+```
+
+(Defaults match Compose when unset.)
 
 `OIDC_ISSUER` / `OIDC_JWKS_URI` always use the **Cognito IdP host** (`cognito-idp.ap-southeast-1.amazonaws.com`), not `getlakbay.com`. Token / hosted UI use the **domain prefix** (`*.auth.ap-southeast-1.amazoncognito.com`).
 
@@ -220,9 +229,9 @@ S3 deletes bytes after 30 days; **Postgres metadata rows remain** for audit unle
 2. Run migration: `npm run prisma:migrate -w @hris/api`
 3. Restart Nest. Register returns a **presigned S3 PUT URL** (not localhost).
 4. Mobile/web: `POST /api/v1/documents` with `sizeBytes`, then `PUT` to `uploadUrl` with `Content-Type` header (same flow as GCS).
-5. HR download (S3 only): `GET /api/v1/documents/:id/download-url` → presigned GET.
+5. Download / view: `GET /api/v1/documents/:id/download-url` → presigned GET (S3/GCS) or Nest `/download` proxy (local). Employees and HR with case access can open; `DELETE /api/v1/documents/:id` for uploader or `hr_admin`.
 
-Interview one-liner: *“Onboarding docs land in a private S3 bucket with SSE and a 30-day lifecycle; Nest issues presigned PUTs and enforces a 100 MB per-employee quota in Postgres because S3 can’t do per-user caps.”*
+Interview one-liner: *“Onboarding docs land in a private S3 bucket with SSE and a 30-day lifecycle; Nest issues presigned PUTs/GETs, serves local downloads when `STORAGE_DRIVER=local`, and enforces a 100 MB per-employee quota in Postgres because S3 can’t do per-user caps.”*
 
 ### Recreate users / callbacks (CLI or console)
 

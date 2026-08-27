@@ -71,7 +71,7 @@ cloudflared tunnel --config infra/cloudflare/tunnel.yml run
 
 Keep that process running while you demo.
 
-**Auth:** local `AUTH_DEV_BYPASS=true` still unlocks Harper on **localhost Vite**. Nest ignores `dev:` tokens when `Host` is `api.getlakbay.com`. Public Pages: **Sign in with Cognito**. Restart Nest after pulling the guard.
+**Auth:** local `AUTH_DEV_BYPASS=true` still unlocks Harper on **localhost Vite**. Nest ignores `dev:` tokens when `Host` is `api.getlakbay.com`. Public Pages: **Sign in with Cognito** (`VITE_AUTH_DEV_BYPASS=false`). Local Keycloak password-grant is separate (`VITE_KEYCLOAK_*`). Restart Nest after `.env` / guard changes.
 
 ### Optional: `cloudflared` in Compose (token, no file in git)
 

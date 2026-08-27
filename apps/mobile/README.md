@@ -60,7 +60,7 @@ curl -sS -H "Authorization: Bearer dev:employee" http://localhost:3000/api/v1/me
 # Tunnel:                https://api.getlakbay.com/api/v1/me
 ```
 
-Then `GET /api/v1/onboarding/cases`, `PATCH /api/v1/onboarding/tasks/:id`, `POST /api/v1/documents` + `PUT` upload, `POST /api/v1/onboarding/cases/:id/submit`.
+Then `GET /api/v1/onboarding/cases`, `PATCH /api/v1/onboarding/tasks/:id`, `POST /api/v1/documents` + `PUT` upload, `GET .../download-url` (view), `DELETE /api/v1/documents/:id`, `POST /api/v1/onboarding/cases/:id/submit`.
 
 ## Role routing (one app)
 
@@ -85,8 +85,8 @@ After login, **`GET /api/v1/me`** decides the home screen — the client never h
 
 Welcome → role-based home:
 
-- **Employee:** checklist **PROFILE / HANDBOOK / ID_DOC / TAX_STUB** → upload ID → Submit for HR review.
-- **Admin:** cases list → case detail (Access ready strip, Approve & activate for HR, Mark done on manager tasks).
+- **Employee:** checklist **PROFILE / HANDBOOK / ID_DOC / TAX_STUB** → upload ID → View / Delete → Submit for HR review.
+- **Admin:** cases list → case detail (documents View / Delete / review, Access ready strip, Approve & activate for HR, Mark done on manager tasks).
 
 ## Cognito Hosted UI
 
@@ -120,20 +120,20 @@ Leave the app running while Safari/Chrome finishes login so `hris://auth` return
 
 **Physical device OIDC:** If Sign in fails with `OIDC state mismatch` after rebuilding, uninstall the app once to clear a cached `hris://auth` deep link from a prior attempt. In AWS Cognito, ensure the **hris-mobile** client (`4ij7jqehds0m6s1ubss1aj7710`) has a **managed login style** assigned — without it Cognito may redirect with `error=login_pages_unavailable` and the Hosted UI form never appears. The authorize URL must not include `identity_provider=COGNITO` (use the default Hosted UI flow).
 
-### Nest `.env` (so the Cognito JWT is accepted)
+### Nest `.env` (so Cognito / Keycloak JWTs are accepted)
 
-Copy into `apps/api/.env` (and restart `npm run dev:api`). JWKS verify is already in `JwtAuthGuard`; this only points it at the lab pool and **both** app clients:
+Copy into `apps/api/.env` (and restart `npm run dev:api`). Prefer the dual-issuer block from root `.env.example` so localhost Keycloak and Cognito both verify:
 
 ```
 AUTH_DEV_BYPASS=true
-OIDC_ISSUER=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG
-OIDC_JWKS_URI=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG/.well-known/jwks.json
-OIDC_AUDIENCE=604evnknhtitgpltjdo90ghm7l,4ij7jqehds0m6s1ubss1aj7710
+OIDC_ISSUER=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG,http://localhost:8082/realms/hris
+OIDC_JWKS_URI=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG/.well-known/jwks.json,http://localhost:8082/realms/hris/protocol/openid-connect/certs
+OIDC_AUDIENCE=604evnknhtitgpltjdo90ghm7l,4ij7jqehds0m6s1ubss1aj7710,hris-web,hris-mobile,account
 OIDC_CLIENT_ID=604evnknhtitgpltjdo90ghm7l
 OIDC_TOKEN_URL=https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/token
 ```
 
-`AUTH_DEV_BYPASS=true` keeps **Continue as employee** working. Cognito groups `hr_admin` / `manager` / `employee` / `system_admin` map to `UserRole`.
+`AUTH_DEV_BYPASS=true` keeps **Continue as …** working on Local lab. Cognito groups `hr_admin` / `manager` / `employee` / `system_admin` map to `UserRole`.
 
 Local Keycloak stand-in (overrides the compiled Cognito defaults):
 

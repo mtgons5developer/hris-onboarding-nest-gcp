@@ -61,7 +61,7 @@ npx wrangler pages deploy apps/web-landing/dist --project-name=hris-landing
 
 GitHub Actions: `.github/workflows/deploy-pages.yml` deploys all three portals on `web-v*` tags or `workflow_dispatch`.
 
-No `VITE_*` env vars are required for the landing page (static links only).
+No `VITE_*` vars are required for production: host-aware defaults point CTAs at `admin` / `onboarding.getlakbay.com` (or localhost `:5173` / `:5174` when served from localhost). Optional overrides: `VITE_ADMIN_URL`, `VITE_ONBOARDING_URL` (see `.env.example`).
 
 ## Assets
 

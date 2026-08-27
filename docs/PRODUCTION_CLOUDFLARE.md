@@ -4,9 +4,9 @@
 
 **Lab AWS login:** `mtgons5.ea@gmail.com` — Cognito user pool only (`infra/aws-cognito/`), not RDS unless you later accept billing. See [AWS_AND_IAM.md](AWS_AND_IAM.md). Pool **hris-lab** is applied (`ap-southeast-1_Z0Q7ukIMG`). Hosted UI prefix `hris-lab-mtgons5` is Active.
 
-Cloudflare owns **DNS + TLS + the two Vite portals**. NestJS does **not** run on Pages — the API is an origin behind a **Cloudflare Tunnel** from the machine that already runs Nest + Compose Postgres (Fly/VPS later). Flutter Android/iOS in `apps/mobile/` calls the same REST API (not hosted on Pages).
+Cloudflare owns **DNS + TLS + the three Vite surfaces** (landing, admin, onboarding). NestJS does **not** run on Pages — the API is an origin behind a **Cloudflare Tunnel** from the machine that already runs Nest + Compose Postgres (Fly/VPS later). Flutter Android/iOS in `apps/mobile/` calls the same REST API (not hosted on Pages).
 
-**Pages custom domains are Active:** `https://admin.getlakbay.com` (`hris-admin`) and `https://onboarding.getlakbay.com` (`hris-onboarding`). Remaining work is the Tunnel to Nest, DNS CNAME for `api`, Pages/`VITE_API_BASE_URL`, and a rebuild (Vite bakes at build time). Nameserver cutover is done; keep [Move getlakbay.com to Cloudflare](#move-getlakbaycom-to-cloudflare) as the record of how the zone was added.
+**Pages custom domains are Active:** `https://getlakbay.com` (`hris-landing`), `https://admin.getlakbay.com` (`hris-admin`), and `https://onboarding.getlakbay.com` (`hris-onboarding`). Remaining work is keeping the Tunnel to Nest healthy and rebuilding Pages when `VITE_*` changes. Nameserver cutover is done; keep [Move getlakbay.com to Cloudflare](#move-getlakbaycom-to-cloudflare) as the record of how the zone was added.
 
 ## Hostnames
 
@@ -157,6 +157,7 @@ Do **not** typo the API URL name: the code reads **`VITE_API_BASE_URL`**, not `V
 | `VITE_OIDC_AUTHORIZE_URL` | `https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/authorize` | **Yes** — Hosted UI |
 | `VITE_OIDC_TOKEN_URL` | `https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/token` | **Yes** — PKCE code exchange |
 | `VITE_OIDC_LOGOUT_URL` | `https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/logout` | **Yes** — Hosted UI sign-out |
+| `VITE_LANDING_URL` | `https://getlakbay.com` | **Yes** — Cognito `logout_uri` / post-sign-out |
 
 Same names if you set GitHub Actions secrets instead of (or in addition to) Pages env. `deploy-pages.yml` already bakes these Cognito URLs (and `VITE_API_BASE_URL`) at build time. Re-run **Deploy Pages**.
 
@@ -178,6 +179,8 @@ Do not deploy Nest to Pages or Workers. Create the tunnel in **your** Cloudflare
 # (plus this project's *.hris-admin.pages.dev / *.hris-onboarding.pages.dev previews).
 # CORS_ORIGINS only adds extras.
 AUTH_DEV_BYPASS=true
+# Cognito-only is enough on the tunnel host. For local Keycloak + Cognito together,
+# comma-separate issuer/JWKS pairs (see root `.env.example`).
 OIDC_ISSUER=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG
 OIDC_JWKS_URI=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1_Z0Q7ukIMG/.well-known/jwks.json
 OIDC_AUDIENCE=604evnknhtitgpltjdo90ghm7l,4ij7jqehds0m6s1ubss1aj7710
@@ -185,7 +188,7 @@ OIDC_CLIENT_ID=604evnknhtitgpltjdo90ghm7l
 OIDC_TOKEN_URL=https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/token
 ```
 
-Public login is **authorization code + PKCE** (Cognito Hosted UI), not password grant. Bypass stays on for localhost; the guard ignores it on `api.getlakbay.com`.
+Public login is **authorization code + PKCE** (Cognito Hosted UI), not password grant. Bypass stays on for localhost; the guard ignores it on `api.getlakbay.com`. Restart Nest after changing OIDC env.
 
 Callback / logout URLs on the Cognito `hris-web` client (already set): `http://localhost:5173`, `http://localhost:5174`, `https://admin.getlakbay.com`, `https://onboarding.getlakbay.com`, `https://hris-admin.pages.dev`, `https://hris-onboarding.pages.dev`.
 
