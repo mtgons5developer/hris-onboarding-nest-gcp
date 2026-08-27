@@ -126,14 +126,37 @@ Local Vite can keep `VITE_API_BASE_URL=http://localhost:3000` and `VITE_AUTH_DEV
 
 If the Hosted UI errors `redirect_mismatch`, add the exact origin (no trailing slash) under Cognito → User pools → **hris-lab** → **App integration** → **hris-web** → **Allowed callback URLs** / **Allowed sign-out URLs**.
 
-**Sign-out redirect to landing:** Admin and onboarding SPAs pass `logout_uri` to the Hosted UI logout endpoint pointing at the landing page (`https://getlakbay.com` in production; `http://localhost:5175` when running Vite on localhost). Add these to **Allowed sign-out URLs** on **hris-web** (keep existing admin/onboarding callback and sign-out URLs unchanged):
+**Sign-out redirect to landing:** Admin and onboarding SPAs call Hosted UI logout as  
+`https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/logout?client_id=…&logout_uri=…`  
+(not `redirect_uri`, not `/oauth2/logout`). Production `logout_uri` is exactly `https://getlakbay.com` (no trailing slash). Cognito rejects with **Invalid request** if that URL is missing from the allow list — a 404 on the apex after redirect is a different (post-Cognito) problem.
+
+**hris-web — Allowed callback URLs** (login `redirect_uri`; keep all):
 
 ```
-https://getlakbay.com
+http://localhost:5173
+http://localhost:5174
+https://admin.getlakbay.com
+https://onboarding.getlakbay.com
+https://hris-admin.pages.dev
+https://hris-onboarding.pages.dev
+```
+
+**hris-web — Allowed sign-out URLs** (logout `logout_uri`; must include landing apex):
+
+```
+http://localhost:5173
+http://localhost:5174
 http://localhost:5175
+https://getlakbay.com
+https://admin.getlakbay.com
+https://onboarding.getlakbay.com
+https://hris-admin.pages.dev
+https://hris-onboarding.pages.dev
 ```
 
-Console: Cognito → User pools → **hris-lab** → **App integration** → **App clients** → **hris-web** → **Hosted UI** → **Allowed sign-out URLs** → **Add sign-out URL** for each line above → **Save changes**.
+Do **not** add `https://getlakbay.com/` (trailing slash) unless the SPA sends that exact string. Optional: also add `https://www.getlakbay.com` if you ever redirect users to www (SPA code normalizes to apex).
+
+Console: Cognito → User pools → **hris-lab** → **App integration** → **App clients** → **hris-web** → **Hosted UI** → edit **Allowed callback URLs** / **Allowed sign-out URLs** → **Save changes**. Or `terraform apply` in `infra/aws-cognito` (TF already lists the above).
 
 Put users in Cognito groups named exactly like `UserRole`. Lab users (email sign-in, password `LabPass123!`):
 

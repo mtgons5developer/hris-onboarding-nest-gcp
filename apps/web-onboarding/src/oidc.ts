@@ -41,16 +41,24 @@ export function redirectUri(): string {
 const LOCAL_LANDING = 'http://localhost:5175';
 const PRODUCTION_LANDING = 'https://getlakbay.com';
 
-/** Cognito logout_uri and post-sign-out redirect — never admin/onboarding app origins. */
+/**
+ * Cognito logout_uri and post-sign-out redirect — never admin/onboarding app origins.
+ * Must match an Allowed sign-out URL on hris-web exactly (no trailing slash).
+ * Prefer apex https://getlakbay.com — www / trailing slash are normalized to that.
+ */
 export function landingUrl(): string {
   if (isLocalViteHost()) return LOCAL_LANDING;
   const raw = import.meta.env.VITE_LANDING_URL || PRODUCTION_LANDING;
   try {
-    const { hostname, origin } = new URL(raw);
-    if (hostname === 'admin.getlakbay.com' || hostname === 'onboarding.getlakbay.com') {
+    const { hostname } = new URL(raw);
+    if (
+      hostname === 'getlakbay.com' ||
+      hostname === 'www.getlakbay.com' ||
+      hostname === 'admin.getlakbay.com' ||
+      hostname === 'onboarding.getlakbay.com'
+    ) {
       return PRODUCTION_LANDING;
     }
-    if (hostname === 'getlakbay.com' || hostname === 'www.getlakbay.com') return origin;
   } catch {
     /* ignore malformed VITE_LANDING_URL */
   }
