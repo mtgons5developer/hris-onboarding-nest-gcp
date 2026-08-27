@@ -1,6 +1,6 @@
 # HRIS + Onboarding Portals (NestJS + PostgreSQL lab)
 
-Portfolio / learning lab for **NestJS module architecture** and **PostgreSQL**, with **OIDC IAM/RBAC** (Keycloak locally; Amazon Cognito Hosted UI on public Pages), three **React (Vite)** surfaces on Cloudflare Pages, and a **Flutter** iOS/Android app in `apps/mobile` (same Nest API). Inspired by HRIS + employee onboarding workflows — **not** an Emapta deliverable and **not** part of Alerto24 production.
+Portfolio / learning lab for **NestJS module architecture** and **PostgreSQL**, with **OIDC IAM/RBAC** (Keycloak locally; **Amazon Cognito** Hosted UI on public Pages), three **React (Vite)** surfaces on Cloudflare Pages, and a **Flutter** iOS/Android app in `apps/mobile` (same Nest API). Documents: **local** disk in dev, **S3** in the lab. Inspired by HRIS + employee onboarding workflows — **not** an Emapta deliverable and **not** part of Alerto24 production. (Repo folder name still ends in `-gcp` for history; primary cloud is **AWS**.)
 
 **Public repo:** https://github.com/mtgons5developer/hris-onboarding-nest-gcp
 
@@ -11,7 +11,7 @@ Portfolio / learning lab for **NestJS module architecture** and **PostgreSQL**, 
 | ORM | **Prisma** |
 | Auth | Multi-issuer OIDC JWKS (`JwtAuthGuard`) · Cognito Hosted UI + PKCE on Pages · Keycloak password-grant on localhost · seed tokens localhost-only |
 | Apps | `web-admin` (HR) · `web-onboarding` (new hire) · `web-landing` (getlakbay.com) · `mobile` (Flutter) |
-| Files | `STORAGE_DRIVER=local` (default) · `s3` (lab) · `gcs` (optional) — upload / view / delete |
+| Files | `STORAGE_DRIVER=local` (default) · `s3` (lab) · `gcs` (optional leftover) — upload / view / delete |
 | CI | GitHub Actions lint / unit / Playwright · Pages deploy (`hris-admin`, `hris-onboarding`, `hris-landing`) |
 
 Design source (also copied under `docs/design/`):  
@@ -21,11 +21,11 @@ Design source (also copied under `docs/design/`):
 - [Roadmap](docs/design/ROADMAP.md)
 - [Stack ADRs](docs/design/STACK_DECISIONS.md)
 - [As-built diffs](docs/AS_BUILT.md)
-- [Auth / AWS free tier](docs/AWS_AND_IAM.md)
+- [Auth / AWS free tier](docs/AWS_AND_IAM.md) (Cognito + S3 — primary cloud path)
 - [Production: Cloudflare + mobile](docs/PRODUCTION_CLOUDFLARE.md) (`getlakbay.com` — Pages Active; Tunnel for `api`)
-- [GCP setup (legacy notes)](docs/GCP_SETUP.md)
+- [GCP setup (unused / optional)](docs/GCP_SETUP.md) — Cloud Run + GCS Terraform; **not** the lab deploy path
 
-**Interview one-liner:** *React admin + onboarding + landing on Cloudflare Pages, Flutter on the same Nest API, Cognito Hosted UI in prod and Keycloak in Compose locally, JWKS multi-issuer verify, documents in local disk or private S3 with Nest-enforced quotas.*
+**Interview one-liner:** *React admin + onboarding + landing on Cloudflare Pages, Flutter on the same Nest API, Amazon Cognito Hosted UI in prod and Keycloak in Compose locally, JWKS multi-issuer verify, documents on local disk (dev) or private S3 (lab) with Nest-enforced quotas — not Cloud Run / Firebase.*
 
 ## Run locally (Phase 0+)
 
@@ -88,7 +88,7 @@ Register → upload → **View** / **Delete** on web admin, web onboarding, and 
 | `GET /api/v1/documents/:id/download` | Local-driver byte stream (inline); not used for S3 |
 | `DELETE /api/v1/documents/:id` | Uploader or `hr_admin`; cleans storage + audit |
 
-`STORAGE_DRIVER=local` (default dev) · `s3` (prod lab — see `infra/aws-s3/`) · `gcs` (optional). Nest enforces **10 MB / file** and **100 MB / employee**; S3 lifecycle is **30 days** on `uploads/*` (Postgres metadata rows remain). Details: [docs/AWS_AND_IAM.md](docs/AWS_AND_IAM.md#amazon-s3-document-uploads-lab).
+`STORAGE_DRIVER=local` (default dev) · `s3` (prod lab — see `infra/aws-s3/`) · `gcs` (optional leftover adapter — not used in this lab). Nest enforces **10 MB / file** and **100 MB / employee**; S3 lifecycle is **30 days** on `uploads/*` (Postgres metadata rows remain). Details: [docs/AWS_AND_IAM.md](docs/AWS_AND_IAM.md#amazon-s3-document-uploads-lab).
 
 ### Lab clients & URLs
 
@@ -115,10 +115,10 @@ Register → upload → **View** / **Delete** on web admin, web onboarding, and 
 |-------|---------|
 | **0** | Monorepo, Nest health, Compose Postgres, Prisma, two Vite shells |
 | **1** | Schema, guards, seed, employees + onboarding cases/tasks, audit, sign-in UIs |
-| **2** | Document register/upload, local/GCS storage, submit/approve state machine, Swagger, Jest |
-| **3** | Dockerfile, CI, Cloud Run workflow + Terraform (apply needs a **new** GCP project) |
+| **2** | Document register/upload, local storage (+ optional GCS adapter), submit/approve state machine, Swagger, Jest |
+| **3** | Dockerfile, CI; optional Cloud Run workflow + GCP Terraform (**unused** in this lab — deploy is Tunnel) |
 | **4** | Playwright happy path, notification port, `tenant_id` column, Identity Platform notes, as-built doc |
-| **Lab+** | Cognito Hosted UI, landing Pages, S3 + quotas, dual-issuer JWKS, document view/delete (web + Flutter), Tunnel `api.getlakbay.com` |
+| **Lab+** | Cognito Hosted UI, landing Pages, **S3** + quotas, dual-issuer JWKS, document view/delete (web + Flutter), Tunnel `api.getlakbay.com` |
 
 Deferred: payroll/ATS, real email, virus scan, coupling to Alerto24, billed RDS/App Runner.
 
@@ -142,8 +142,8 @@ packages/shared     Shared enums / default tasks
 e2e                 Playwright
 infra/cloudflare    Pages wrangler + Tunnel example (`tunnel.yml.example`)
 infra/keycloak      Realm import
-infra/aws-cognito   Cognito user pool / Hosted UI Terraform
-infra/aws-s3        Private uploads bucket (SSE, CORS, 30-day lifecycle)
-infra/terraform     Optional GCP Cloud SQL + Run
-docs/               Design pack + as-built + production
+infra/aws-cognito   Cognito user pool / Hosted UI Terraform (**lab auth**)
+infra/aws-s3        Private uploads bucket (SSE, CORS, 30-day lifecycle) (**lab files**)
+infra/terraform     Unused optional GCP Cloud SQL + Run (see docs/GCP_SETUP.md)
+docs/               Design pack (historical GCP kickoff) + as-built + AWS notes
 ```

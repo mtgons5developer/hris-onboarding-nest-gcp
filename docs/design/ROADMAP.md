@@ -1,5 +1,7 @@
 # Roadmap — HRIS + Onboarding NestJS + GCP Lab
 
+> **Superseded by the AWS lab** for hosting/auth/files (Cognito, S3, Cloudflare Tunnel — not Cloud Run / Firebase). Phases below are historical build plan; see repo README “What each phase shipped” and [AS_BUILT.md](../AS_BUILT.md).
+
 Phased build plan for the **next implementation conversation**.  
 Design source of truth: [ARCHITECTURE.md](./ARCHITECTURE.md) · Decisions: [STACK_DECISIONS.md](./STACK_DECISIONS.md)
 

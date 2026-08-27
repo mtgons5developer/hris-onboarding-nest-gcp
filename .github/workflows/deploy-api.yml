@@ -1,7 +1,9 @@
-# Deploy Nest API to Cloud Run. Does not run on every push — requires lab GCP secrets.
-# See docs/GCP_SETUP.md for project bootstrap and required GitHub secrets.
+# Deploy Nest API to Cloud Run — UNUSED in the current lab.
+# Lab public API is Cloudflare Tunnel → Nest on Mac (see docs/PRODUCTION_CLOUDFLARE.md).
+# Keep this workflow only if you deliberately stand up a GCP project (docs/GCP_SETUP.md).
+# Requires lab GCP secrets; does not run on every push.
 
-name: Deploy API (Cloud Run)
+name: Deploy API (Cloud Run — optional / unused)
 
 on:
   workflow_dispatch:

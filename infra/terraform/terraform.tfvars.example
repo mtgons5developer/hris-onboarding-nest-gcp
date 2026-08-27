@@ -1,3 +1,5 @@
+# Unused in the current AWS lab — do not apply unless you intentionally stand up GCP.
+# Prefer infra/aws-cognito and infra/aws-s3.
 project_id  = "YOUR_LAB_GCP_PROJECT"
 region      = "asia-southeast1"
 db_password = "change-me-in-a-secret-file"

@@ -1,3 +1,5 @@
+# Optional / unused: GCP Cloud SQL + GCS + Artifact Registry for Cloud Run.
+# Current lab: Cognito + S3 + Cloudflare Tunnel — see ../aws-cognito, ../aws-s3, ../../docs/AWS_AND_IAM.md
 terraform {
   required_version = ">= 1.6.0"
   required_providers {

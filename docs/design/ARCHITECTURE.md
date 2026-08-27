@@ -1,5 +1,7 @@
 # Architecture — HRIS + Onboarding Portals (NestJS + GCP Lab)
 
+> **Superseded by the AWS lab.** As-built: Cognito + S3 + Cloudflare Pages/Tunnel — see [AS_BUILT.md](../AS_BUILT.md) and repo README. Sections below (§9 GCP topology, Firebase Auth, Cloud Run) are historical kickoff design.
+
 **Document type:** Design / kickoff  
 **Last updated:** 2026-08-26  
 **Related:** [README.md](./README.md) · [ROADMAP.md](./ROADMAP.md) · [STACK_DECISIONS.md](./STACK_DECISIONS.md)

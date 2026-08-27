@@ -1,4 +1,7 @@
-# GCP lab setup (Phase 3)
+# GCP lab setup (Phase 3) — unused / optional
+
+> **Not the current lab path.** Production lab runs Nest via **Cloudflare Tunnel** on a Mac, with **Amazon Cognito** + **S3**. Do **not** create a billed GCP project for the default demo. Prefer [AWS_AND_IAM.md](./AWS_AND_IAM.md), [PRODUCTION_CLOUDFLARE.md](./PRODUCTION_CLOUDFLARE.md), and `infra/aws-cognito` / `infra/aws-s3`.  
+> Kept below for historical Phase 3 notes and the optional `STORAGE_DRIVER=gcs` / Cloud Run workflow only.
 
 Create a **new** GCP + Firebase project. Do not reuse Alerto24 production (`sonorous-summer-415805` / related).
 

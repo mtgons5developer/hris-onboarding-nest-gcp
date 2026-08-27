@@ -1,4 +1,6 @@
-# Auth, IAM/RBAC, and “AWS for free”
+# Auth, IAM/RBAC, and AWS lab path
+
+Primary cloud for this lab is **AWS**: **Cognito** (auth) + **S3** (document uploads). Nest runs on a Mac behind **Cloudflare Tunnel**; static portals are **Cloudflare Pages**. GCP Cloud Run / Cloud SQL / Firebase Auth are **not** in the runtime path (optional leftovers: `STORAGE_DRIVER=gcs`, `infra/terraform`, `docs/GCP_SETUP.md`).
 
 This lab is **not** billed on Firebase Auth anymore. Nest verifies **OIDC access tokens** via JWKS. That is the same pattern used with **Keycloak**, **Amazon Cognito**, and **Azure Entra**.
 
@@ -20,7 +22,7 @@ This repo does not store AWS keys. Do not paste access keys into git, `.env`, or
 | **App Runner / ECS / ALB** | Not lastingly free |
 | **Secrets Manager** | ~$0.40/secret/month after trial |
 
-**Do not apply** `infra/terraform` Cloud SQL/GCP or an RDS stack unless you accept billing. Cognito (`infra/aws-cognito`) is already applied — do **not** apply a second hosted domain (prefix `hris-lab-mtgons5` already exists).
+**Do not apply** `infra/terraform` (unused GCP Cloud SQL/Run) or an RDS stack unless you accept billing. Cognito (`infra/aws-cognito`) and S3 (`infra/aws-s3`) are the lab AWS path — do **not** apply a second Cognito hosted domain (prefix `hris-lab-mtgons5` already exists).
 
 ## What we run for $0 today (JD-aligned)
 
@@ -228,8 +230,8 @@ S3 deletes bytes after 30 days; **Postgres metadata rows remain** for audit unle
 1. Apply S3 Terraform and set Nest env (`STORAGE_DRIVER=s3`, bucket, region, keys).
 2. Run migration: `npm run prisma:migrate -w @hris/api`
 3. Restart Nest. Register returns a **presigned S3 PUT URL** (not localhost).
-4. Mobile/web: `POST /api/v1/documents` with `sizeBytes`, then `PUT` to `uploadUrl` with `Content-Type` header (same flow as GCS).
-5. Download / view: `GET /api/v1/documents/:id/download-url` → presigned GET (S3/GCS) or Nest `/download` proxy (local). Employees and HR with case access can open; `DELETE /api/v1/documents/:id` for uploader or `hr_admin`.
+4. Mobile/web: `POST /api/v1/documents` with `sizeBytes`, then `PUT` to `uploadUrl` with `Content-Type` header (same flow as optional GCS adapter).
+5. Download / view: `GET /api/v1/documents/:id/download-url` → presigned GET (S3; or GCS if that driver is enabled) or Nest `/download` proxy (local). Employees and HR with case access can open; `DELETE /api/v1/documents/:id` for uploader or `hr_admin`.
 
 Interview one-liner: *“Onboarding docs land in a private S3 bucket with SSE and a 30-day lifecycle; Nest issues presigned PUTs/GETs, serves local downloads when `STORAGE_DRIVER=local`, and enforces a 100 MB per-employee quota in Postgres because S3 can’t do per-user caps.”*
 

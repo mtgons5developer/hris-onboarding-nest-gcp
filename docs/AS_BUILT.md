@@ -10,7 +10,7 @@ Design pack: [design/ARCHITECTURE.md](./design/ARCHITECTURE.md). This file recor
 | Mobile | Flutter `apps/mobile` — employee checklist + HR/manager admin console; same Nest API |
 | Auth local | `AUTH_DEV_BYPASS=true` + `Bearer dev:hr_admin` / `dev:manager` / `dev:employee` (localhost / LAN Host only) |
 | Auth IdP | Cognito Hosted UI (PKCE) on Pages · Keycloak password-grant on localhost (`VITE_KEYCLOAK_*`) · Nest multi-issuer JWKS (`OIDC_ISSUER` / `OIDC_JWKS_URI` comma-separated) · **not** Firebase |
-| Files | `STORAGE_DRIVER=local` → `data/uploads` + `GET .../download`; `s3` / `gcs` → presigned PUT/GET; upload / **view** / **delete** on web + Flutter |
+| Files | `STORAGE_DRIVER=local` (dev) → `data/uploads` + `GET .../download`; `s3` (lab) → presigned PUT/GET; `gcs` optional leftover adapter; upload / **view** / **delete** on web + Flutter |
 | Quotas | 10 MB / file · 100 MB / employee (Nest); S3 30-day lifecycle on `uploads/*` (metadata rows remain) |
 | Notifications | `NotificationPort` + console stub (SendGrid env reserved) |
 | OpenAPI | Swagger at `/api/docs` |
@@ -37,9 +37,9 @@ Design pack: [design/ARCHITECTURE.md](./design/ARCHITECTURE.md). This file recor
 5. `npm run dev:onboarding` → complete tasks, upload fake ID, **View** / **Delete**, submit
 6. Back in admin → **Approve**; show Audit tab
 7. Optional: Flutter (`apps/mobile/README.md`) — Luis checklist then Harper case detail on the same app
-8. Walk Nest modules (Identity / Employees / Onboarding / Documents / Audit) and the AWS→GCP map in Architecture §9
+8. Walk Nest modules (Identity / Employees / Onboarding / Documents / Audit) and the Cognito + S3 + Tunnel topology ([AWS_AND_IAM.md](./AWS_AND_IAM.md); design pack §9 is **historical GCP** — see note at top of [design/ARCHITECTURE.md](./design/ARCHITECTURE.md))
 
-**Talk track:** *Same Nest API for three Vite portals and Flutter; Cognito PKCE in prod, Keycloak in Compose locally, multi-issuer JWKS; documents local or private S3 with Nest quotas.*
+**Talk track:** *Same Nest API for three Vite portals and Flutter; Amazon Cognito PKCE in prod, Keycloak in Compose locally, multi-issuer JWKS; documents local (dev) or private S3 (lab) with Nest quotas; Cloudflare Pages + Tunnel — not Cloud Run / Firebase.*
 
 ## Lab public URLs
 

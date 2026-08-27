@@ -1,7 +1,7 @@
 {
   "name": "hris-onboarding-nest-gcp",
   "private": true,
-  "description": "Lab / portfolio HRIS + employee onboarding: NestJS, PostgreSQL, Keycloak/OIDC, React web, Flutter mobile.",
+  "description": "Lab / portfolio HRIS + employee onboarding: NestJS, PostgreSQL, Cognito/Keycloak OIDC, S3/local files, React web, Flutter mobile.",
   "workspaces": [
     "apps/api",
     "apps/web-admin",
