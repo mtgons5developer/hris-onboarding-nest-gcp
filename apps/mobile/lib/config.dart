@@ -33,21 +33,35 @@ class AppConfig {
 
   static const productionApiBase = 'https://api.getlakbay.com';
   static const devEmployeeToken = 'dev:employee';
+  static const devHrAdminToken = 'dev:hr_admin';
+  static const devManagerToken = 'dev:manager';
+
+  /// Dev bypass tokens only when API is local/LAN — never on production tunnel.
+  static bool showDevBypass(String apiBase) =>
+      apiBase != productionApiBase;
+
+  /// Set via `--dart-define=API_BASE_URL=...` (physical device LAN IP, tunnel, etc.).
+  static bool get hasCompiledApiBase => _envApi.isNotEmpty;
 
   static bool get oidcConfigured =>
       oidcAuthorizeUrl.isNotEmpty && oidcTokenUrl.isNotEmpty && oidcClientId.isNotEmpty;
 
-  /// Android emulator cannot reach the host via localhost.
+  /// Local Nest on the dev machine. Android **emulator** uses `10.0.2.2` (not `localhost`).
+  /// Physical Android must pass `--dart-define=API_BASE_URL=http://<lan-ip>:3000`.
   static String localApiBase() {
+    if (_envApi.isNotEmpty) return _envApi;
     if (!kIsWeb && Platform.isAndroid) {
       return 'http://10.0.2.2:3000';
     }
     return 'http://localhost:3000';
   }
 
-  static String initialApiBase() {
+  static String initialApiBase() => localApiBase();
+
+  /// `--dart-define=API_BASE_URL` wins over a stale SharedPreferences value.
+  static String resolveApiBase(String? saved) {
     if (_envApi.isNotEmpty) return _envApi;
-    return localApiBase();
+    return saved ?? localApiBase();
   }
 }
 

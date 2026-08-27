@@ -34,6 +34,11 @@ infra/aws-cognito/*.tfstate
 infra/aws-cognito/*.tfstate.*
 infra/aws-cognito/*.tfvars
 !infra/aws-cognito/*.tfvars.example
+infra/aws-s3/.terraform/
+infra/aws-s3/*.tfstate
+infra/aws-s3/*.tfstate.*
+infra/aws-s3/*.tfvars
+!infra/aws-s3/*.tfvars.example
 # Cloudflare Tunnel local config (credentials stay in ~/.cloudflared/)
 infra/cloudflare/tunnel.yml
 

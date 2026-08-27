@@ -11,6 +11,7 @@ export interface StoragePort {
     contentType: string;
     documentId: string;
   }): Promise<StoredObject>;
+  createDownloadUrl?(objectKey: string): Promise<string>;
   saveLocal?(documentId: string, buffer: Buffer, contentType: string): Promise<void>;
 }
 

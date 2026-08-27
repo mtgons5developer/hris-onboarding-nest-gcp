@@ -42,6 +42,7 @@ npm run prisma:migrate
 npm run prisma:seed
 
 npm run dev:api          # http://localhost:3000/health  ·  Swagger /api/docs
+npm run dev:landing      # http://localhost:5175 — sign-out from admin/onboarding redirects here
 npm run dev:admin        # http://localhost:5173
 npm run dev:onboarding   # http://localhost:5174
 # Flutter (not an npm workspace): cd apps/mobile && flutter run

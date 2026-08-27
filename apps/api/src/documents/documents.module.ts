@@ -4,7 +4,9 @@ import { DocumentsService } from './documents.service';
 import { DocumentsController } from './documents.controller';
 import { LocalDiskStorage } from './local-disk.storage';
 import { GcsStorage } from './gcs.storage';
+import { S3Storage } from './s3.storage';
 import { STORAGE_PORT } from './storage.port';
+import { selectStorageDriver } from './storage.factory';
 import { AuditModule } from '../audit/audit.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 
@@ -15,12 +17,11 @@ import { OnboardingModule } from '../onboarding/onboarding.module';
     DocumentsService,
     LocalDiskStorage,
     GcsStorage,
+    S3Storage,
     {
       provide: STORAGE_PORT,
-      inject: [ConfigService, LocalDiskStorage, GcsStorage],
-      useFactory: (config: ConfigService, local: LocalDiskStorage, gcs: GcsStorage) => {
-        return config.get('STORAGE_DRIVER') === 'gcs' ? gcs : local;
-      },
+      inject: [ConfigService, LocalDiskStorage, GcsStorage, S3Storage],
+      useFactory: selectStorageDriver,
     },
   ],
 })

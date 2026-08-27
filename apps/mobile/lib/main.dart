@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'screens/admin_home_screen.dart';
 import 'screens/checklist_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'session.dart';
+import 'sign_out_actions.dart';
 import 'theme.dart';
 
 void main() {
@@ -51,8 +53,46 @@ class _HrisOnboardingAppState extends State<HrisOnboardingApp> {
           if (_session.me == null) {
             return WelcomeScreen(session: _session);
           }
-          return ChecklistScreen(session: _session);
+          final me = _session.me!;
+          if (me.isEmployee) {
+            return ChecklistScreen(session: _session);
+          }
+          if (me.isAdmin) {
+            return AdminHomeScreen(session: _session);
+          }
+          return _WrongPortalScreen(session: _session, role: me.role);
         },
+      ),
+    );
+  }
+}
+
+class _WrongPortalScreen extends StatelessWidget {
+  const _WrongPortalScreen({required this.session, required this.role});
+
+  final SessionController session;
+  final String role;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Unknown role', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              Text(
+                'Role "$role" is not supported in this app. Sign out and use the correct portal.',
+                style: const TextStyle(color: muted, height: 1.4),
+              ),
+              const Spacer(),
+              SessionSignOutActions(session: session),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -61,6 +61,8 @@ resource "aws_cognito_user_pool_client" "web" {
   logout_urls = [
     "http://localhost:5173",
     "http://localhost:5174",
+    "http://localhost:5175",
+    "https://getlakbay.com",
     "https://admin.getlakbay.com",
     "https://onboarding.getlakbay.com",
     "https://hris-admin.pages.dev",

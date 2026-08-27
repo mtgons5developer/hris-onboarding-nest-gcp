@@ -26,7 +26,7 @@ export class LocalDiskStorage implements StoragePort {
     };
   }
 
-  async saveLocal(documentId: string, buffer: Buffer): Promise<void> {
+  async saveLocal(documentId: string, buffer: Buffer, _contentType?: string): Promise<void> {
     const dir = this.dir();
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, documentId), buffer);

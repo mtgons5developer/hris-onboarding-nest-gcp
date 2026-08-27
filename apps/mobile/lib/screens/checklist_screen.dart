@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../hris_client.dart';
 import '../models.dart';
 import '../session.dart';
+import '../sign_out_actions.dart';
 import '../theme.dart';
 
 class ChecklistScreen extends StatefulWidget {
@@ -42,6 +43,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      if (await widget.session.handleApiError(e)) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -56,6 +58,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
       await _reload();
     } catch (e) {
       if (!mounted) return;
+      if (await widget.session.handleApiError(e)) return;
       setState(() => _error = e.toString());
     }
   }
@@ -105,6 +108,10 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                   onPressed: widget.session.signOut,
                   child: const Text('Sign out'),
                 ),
+                TextButton(
+                  onPressed: widget.session.signInAsDifferentAccount,
+                  child: const Text('Sign in as different account'),
+                ),
               ],
             ),
           ),
@@ -141,9 +148,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       _Badge(c.status),
                       const SizedBox(height: 4),
                       _Badge(c.day1Label),
-                      TextButton(
-                        onPressed: widget.session.signOut,
-                        child: Text('Sign out ${me.firstName}', style: const TextStyle(color: ink)),
+                      SessionSignOutActions(
+                        session: widget.session,
+                        signOutLabel: 'Sign out ${me.firstName}',
                       ),
                     ],
                   ),

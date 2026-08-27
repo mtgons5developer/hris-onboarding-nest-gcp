@@ -1,0 +1,1 @@
+ALTER TABLE "documents_meta" ADD COLUMN "size_bytes" INTEGER NOT NULL DEFAULT 0;

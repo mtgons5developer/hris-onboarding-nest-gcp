@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_OIDC_TOKEN_URL: string;
   readonly VITE_OIDC_LOGOUT_URL: string;
   readonly VITE_OIDC_ISSUER: string;
+  readonly VITE_LANDING_URL: string;
 }
 
 interface ImportMeta {

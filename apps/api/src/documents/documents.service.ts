@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ReviewStatus, User } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
@@ -6,6 +11,7 @@ import { AuditService } from '../audit/audit.service';
 import { OnboardingService } from '../onboarding/onboarding.service';
 import { STORAGE_PORT, StoragePort } from './storage.port';
 import { RegisterDocumentDto } from './dto/register-document.dto';
+import { assertEmployeeQuota, assertFileSize } from './document-quota';
 
 @Injectable()
 export class DocumentsService {
@@ -16,10 +22,26 @@ export class DocumentsService {
     @Inject(STORAGE_PORT) private readonly storage: StoragePort,
   ) {}
 
+  private uploadObjectKey(caseId: string, documentId: string, filename: string): string {
+    return `uploads/onboarding/${caseId}/${documentId}/${filename}`;
+  }
+
+  private async employeeUsedBytes(employeeId: string): Promise<number> {
+    const agg = await this.prisma.documentMeta.aggregate({
+      _sum: { sizeBytes: true },
+      where: { case: { employeeId } },
+    });
+    return agg._sum.sizeBytes ?? 0;
+  }
+
   async register(dto: RegisterDocumentDto, actor: User) {
-    await this.onboarding.getCase(dto.caseId, actor);
+    const onboardingCase = await this.onboarding.getCase(dto.caseId, actor);
+    assertFileSize(dto.sizeBytes);
+    const used = await this.employeeUsedBytes(onboardingCase.employeeId);
+    assertEmployeeQuota(used, dto.sizeBytes);
+
     const id = randomUUID();
-    const objectKey = `onboarding/${dto.caseId}/${id}/${dto.filename}`;
+    const objectKey = this.uploadObjectKey(dto.caseId, id, dto.filename);
     const slot = await this.storage.createUpload({
       objectKey,
       contentType: dto.contentType,
@@ -34,6 +56,7 @@ export class DocumentsService {
         gcsObjectKey: slot.objectKey,
         contentType: dto.contentType,
         originalFilename: dto.filename,
+        sizeBytes: dto.sizeBytes,
         uploadedByUserId: actor.id,
       },
     });
@@ -42,19 +65,41 @@ export class DocumentsService {
       action: 'DOCUMENT_REGISTERED',
       entityType: 'document',
       entityId: meta.id,
-      afterJson: { filename: dto.filename, caseId: dto.caseId },
+      afterJson: { filename: dto.filename, caseId: dto.caseId, sizeBytes: dto.sizeBytes },
     });
     return { document: meta, uploadUrl: slot.uploadUrl, method: slot.method };
   }
 
   async saveUpload(id: string, buffer: Buffer, contentType: string) {
-    const meta = await this.prisma.documentMeta.findUnique({ where: { id } });
+    const meta = await this.prisma.documentMeta.findUnique({
+      where: { id },
+      include: { case: { select: { employeeId: true } } },
+    });
     if (!meta) throw new NotFoundException('Document not found');
     if (!this.storage.saveLocal) {
-      throw new NotFoundException('Local upload is disabled (use GCS signed URL)');
+      throw new NotFoundException('Local upload is disabled (use cloud signed URL)');
     }
+    assertFileSize(buffer.length);
+    const usedExcluding = (await this.employeeUsedBytes(meta.case.employeeId)) - meta.sizeBytes;
+    assertEmployeeQuota(usedExcluding, buffer.length);
+
     await this.storage.saveLocal(id, buffer, contentType);
+    await this.prisma.documentMeta.update({
+      where: { id },
+      data: { sizeBytes: buffer.length },
+    });
     return { ok: true, id };
+  }
+
+  async getDownloadUrl(id: string, actor: User) {
+    const meta = await this.prisma.documentMeta.findUnique({ where: { id } });
+    if (!meta) throw new NotFoundException('Document not found');
+    await this.onboarding.getCase(meta.caseId, actor);
+    if (!this.storage.createDownloadUrl) {
+      throw new BadRequestException('Download URLs are not available for this storage driver');
+    }
+    const downloadUrl = await this.storage.createDownloadUrl(meta.gcsObjectKey);
+    return { downloadUrl, expiresInSeconds: Number(process.env.S3_DOWNLOAD_URL_TTL_SECONDS ?? 900) };
   }
 
   async review(id: string, reviewStatus: ReviewStatus, actor: User) {

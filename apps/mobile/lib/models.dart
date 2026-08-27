@@ -24,6 +24,33 @@ class Me {
   }
 
   String get firstName => displayName.split(' ').first;
+
+  bool get isEmployee => role == 'employee';
+
+  bool get isAdmin =>
+      role == 'hr_admin' || role == 'manager' || role == 'system_admin';
+
+  String get portalLabel => isAdmin ? 'Admin console' : 'Onboarding portal';
+}
+
+class CaseDocument {
+  const CaseDocument({
+    required this.id,
+    required this.originalFilename,
+    required this.reviewStatus,
+  });
+
+  final String id;
+  final String originalFilename;
+  final String reviewStatus;
+
+  factory CaseDocument.fromJson(Map<String, dynamic> json) {
+    return CaseDocument(
+      id: json['id'] as String,
+      originalFilename: json['originalFilename'] as String,
+      reviewStatus: json['reviewStatus'] as String,
+    );
+  }
 }
 
 class PersonName {
@@ -84,6 +111,11 @@ class OnboardingCase {
     this.managerName,
     this.idpSub,
     this.linkedRole,
+    this.workEmail,
+    this.department,
+    this.startDate,
+    this.offerTitle,
+    this.documents = const [],
   });
 
   final String id;
@@ -94,6 +126,11 @@ class OnboardingCase {
   final String? managerName;
   final String? idpSub;
   final String? linkedRole;
+  final String? workEmail;
+  final String? department;
+  final String? startDate;
+  final String? offerTitle;
+  final List<CaseDocument> documents;
   final List<OnboardingTask> tasks;
 
   List<OnboardingTask> get mine => tasks.where((t) => t.isEmployee).toList();
@@ -123,20 +160,44 @@ class OnboardingCase {
     return sub;
   }
 
+  String get employeeFullName => '$employeeFirstName $employeeLastName'.trim();
+
+  int get doneTaskCount =>
+      tasks.where((t) => t.status == 'done' || t.status == 'waived').length;
+
+  int get taskPercent {
+    if (tasks.isEmpty) return 0;
+    return ((doneTaskCount / tasks.length) * 100).round();
+  }
+
+  List<OnboardingTask> tasksForRole(String role) =>
+      tasks.where((t) => t.assigneeRole == role).toList();
+
   factory OnboardingCase.fromJson(Map<String, dynamic> json) {
     final employee = json['employee'] as Map<String, dynamic>? ?? {};
     final user = employee['user'] as Map<String, dynamic>?;
     final manager = PersonName.fromJson(employee['manager'] as Map<String, dynamic>?);
+    final offer = json['offer'] as Map<String, dynamic>?;
     final rawTasks = json['tasks'] as List<dynamic>? ?? [];
+    final rawDocs = json['documents'] as List<dynamic>? ?? [];
+    final hiredAt = employee['hiredAt'] as String?;
+    final offerStart = offer?['startDate'] as String?;
     return OnboardingCase(
       id: json['id'] as String,
       status: json['status'] as String,
       employeeFirstName: employee['firstName'] as String? ?? '',
       employeeLastName: employee['lastName'] as String? ?? '',
       employeeStatus: employee['status'] as String? ?? '',
+      workEmail: employee['workEmail'] as String?,
+      department: employee['department'] as String?,
       managerName: manager.firstName.isEmpty ? null : manager.full,
       idpSub: user?['idpSub'] as String?,
       linkedRole: user?['role'] as String?,
+      startDate: offerStart ?? hiredAt,
+      offerTitle: offer?['title'] as String?,
+      documents: rawDocs
+          .map((d) => CaseDocument.fromJson(d as Map<String, dynamic>))
+          .toList(),
       tasks: rawTasks
           .map((t) => OnboardingTask.fromJson(t as Map<String, dynamic>))
           .toList(),

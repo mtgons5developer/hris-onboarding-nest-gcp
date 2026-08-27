@@ -1,15 +1,17 @@
 # Cloudflare Pages — HRIS portals
 
-Deployed by `.github/workflows/deploy-pages.yml`. Wrangler project names must match Pages projects in the dashboard (`hris-admin`, `hris-onboarding`).
+Deployed by `.github/workflows/deploy-pages.yml`. Wrangler project names must match Pages projects in the dashboard (`hris-admin`, `hris-onboarding`, `hris-landing`).
 
 ```bash
 # after npm run build -w @hris/web-admin
 npx wrangler pages deploy apps/web-admin/dist --project-name=hris-admin
 npx wrangler pages deploy apps/web-onboarding/dist --project-name=hris-onboarding
+npx wrangler pages deploy apps/web-landing/dist --project-name=hris-landing
 ```
 
 Custom domains are attached in the Cloudflare dashboard, not in git:
 
+- `getlakbay.com` (and optional `www.getlakbay.com`) → project `hris-landing`
 - `admin.getlakbay.com` → project `hris-admin`
 - `onboarding.getlakbay.com` → project `hris-onboarding`
 

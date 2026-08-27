@@ -32,8 +32,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final session = widget.session;
     final local = AppConfig.localApiBase();
     final usingLocal = session.apiBase == local;
+    final devBypass = session.showDevBypass;
 
     return Scaffold(
+      appBar: AppBar(title: const Text('HRIS (lab)')),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -57,16 +59,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           Text('Welcome aboard', style: Theme.of(context).textTheme.headlineMedium),
                           const SizedBox(height: 8),
                           const Text(
-                            'Day-1 access (lab) · Luis Reyes · same Nest API as the React portal',
+                            'One app · employee checklist or admin console · role from /api/v1/me',
                             style: TextStyle(color: muted, height: 1.4),
                           ),
                           const SizedBox(height: 24),
-                          FilledButton(
-                            key: const Key('dev-login'),
-                            onPressed: _busy ? null : () => _run(session.continueAsEmployee),
-                            child: const Text('Continue as employee'),
-                          ),
-                          const SizedBox(height: 10),
                           OutlinedButton(
                             onPressed: _busy
                                 ? null
@@ -76,7 +72,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                         const SnackBar(
                                           content: Text(
                                             'Cognito Hosted UI is not configured yet. '
-                                            'Use Continue as employee (AUTH_DEV_BYPASS). See apps/mobile/README.md.',
+                                            'Use dev login when AUTH_DEV_BYPASS is on. See apps/mobile/README.md.',
                                           ),
                                         ),
                                       );
@@ -86,6 +82,37 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   },
                             child: const Text('Sign in with Cognito'),
                           ),
+                          if (devBypass) ...[
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Local dev only (Nest AUTH_DEV_BYPASS)',
+                              style: TextStyle(color: muted, fontSize: 12),
+                            ),
+                            const SizedBox(height: 8),
+                            FilledButton(
+                              key: const Key('dev-login-employee'),
+                              onPressed: _busy ? null : () => _run(session.continueAsEmployee),
+                              child: const Text('Continue as employee (Luis)'),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton(
+                              key: const Key('dev-login-hr'),
+                              onPressed: _busy ? null : () => _run(session.continueAsHrAdmin),
+                              child: const Text('Continue as HR (Harper)'),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton(
+                              key: const Key('dev-login-manager'),
+                              onPressed: _busy ? null : () => _run(session.continueAsManager),
+                              child: const Text('Continue as Manager (Maya)'),
+                            ),
+                          ] else ...[
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Production API — Cognito only. Dev tokens are disabled.',
+                              style: TextStyle(color: muted, fontSize: 12),
+                            ),
+                          ],
                           if (_busy) ...[
                             const SizedBox(height: 16),
                             const Center(child: CircularProgressIndicator()),

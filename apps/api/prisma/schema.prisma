@@ -163,6 +163,7 @@ model DocumentMeta {
   gcsObjectKey      String       @map("gcs_object_key")
   contentType       String       @map("content_type")
   originalFilename  String       @map("original_filename")
+  sizeBytes         Int          @default(0) @map("size_bytes")
   uploadedByUserId  String       @map("uploaded_by_user_id")
   reviewStatus      ReviewStatus @default(pending) @map("review_status")
   createdAt         DateTime     @default(now()) @map("created_at")

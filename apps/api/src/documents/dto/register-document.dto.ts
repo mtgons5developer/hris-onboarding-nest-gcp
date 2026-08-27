@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class RegisterDocumentDto {
@@ -18,4 +18,9 @@ export class RegisterDocumentDto {
   @ApiProperty()
   @IsString()
   contentType: string;
+
+  @ApiProperty({ description: 'File size in bytes (max 10 MB per file)' })
+  @IsInt()
+  @Min(1)
+  sizeBytes: number;
 }

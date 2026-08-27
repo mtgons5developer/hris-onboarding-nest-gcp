@@ -12,6 +12,8 @@ Cloudflare owns **DNS + TLS + the two Vite portals**. NestJS does **not** run on
 
 | Host | Product | Cloudflare |
 |------|---------|------------|
+| `getlakbay.com` | Marketing landing (Vite) | **Pages** project `hris-landing` |
+| `www.getlakbay.com` | Optional alias / redirect | **Pages** project `hris-landing` |
 | `admin.getlakbay.com` | HRIS Admin (Vite) | **Pages** project `hris-admin` |
 | `onboarding.getlakbay.com` | New-hire portal (Vite) | **Pages** project `hris-onboarding` |
 | `api.getlakbay.com` | NestJS REST | Tunnel CNAME → `<tunnel-id>.cfargotunnel.com`, proxied |
@@ -30,6 +32,7 @@ Mobile apps use `https://api.getlakbay.com` (no CORS). Optional Universal Links 
 ```
 Browser / Flutter
         │
+        ├─ getlakbay.com ──────────────── Cloudflare Pages (landing SPA)
         ├─ admin.getlakbay.com ──────── Cloudflare Pages (SPA)
         ├─ onboarding.getlakbay.com ── Cloudflare Pages (SPA)
         │
@@ -71,13 +74,15 @@ Leave the domain registered where it is. You are only changing **who answers DNS
 ## DNS (once getlakbay.com is in Cloudflare)
 
 ```
+@            CNAME  hris-landing.pages.dev           Proxied  (apex; CF flattens)
+www          CNAME  hris-landing.pages.dev           Proxied  (optional)
 admin        CNAME  hris-admin.pages.dev           Proxied
 onboarding   CNAME  hris-onboarding.pages.dev      Proxied
 api          CNAME  <tunnel-id>.cfargotunnel.com   Proxied
 auth         CNAME  <cognito custom domain — later>  Proxied  (skip until then; use Cognito hosted UI prefix)
 ```
 
-Attach custom domains in each Pages project (`admin.getlakbay.com`, `onboarding.getlakbay.com`). Enable **Always Use HTTPS**.
+Attach custom domains in each Pages project (`getlakbay.com`, `admin.getlakbay.com`, `onboarding.getlakbay.com`). Enable **Always Use HTTPS**.
 
 Pages custom-domain CNAMEs are often created automatically when you click **Set up a custom domain** on the project. Prefer that over hand-typing the `pages.dev` target if the UI offers it.
 

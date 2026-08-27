@@ -38,6 +38,29 @@ export function redirectUri(): string {
   return window.location.origin;
 }
 
+const LOCAL_LANDING = 'http://localhost:5175';
+const PRODUCTION_LANDING = 'https://getlakbay.com';
+
+/** Cognito logout_uri and post-sign-out redirect — never admin/onboarding app origins. */
+export function landingUrl(): string {
+  if (isLocalViteHost()) return LOCAL_LANDING;
+  const raw = import.meta.env.VITE_LANDING_URL || PRODUCTION_LANDING;
+  try {
+    const { hostname, origin } = new URL(raw);
+    if (hostname === 'admin.getlakbay.com' || hostname === 'onboarding.getlakbay.com') {
+      return PRODUCTION_LANDING;
+    }
+    if (hostname === 'getlakbay.com' || hostname === 'www.getlakbay.com') return origin;
+  } catch {
+    /* ignore malformed VITE_LANDING_URL */
+  }
+  return PRODUCTION_LANDING;
+}
+
+export function redirectToLanding(): void {
+  window.location.replace(landingUrl());
+}
+
 export async function beginHostedUiLogin(): Promise<void> {
   const authorize = import.meta.env.VITE_OIDC_AUTHORIZE_URL;
   const id = clientId();
@@ -119,10 +142,19 @@ function stripAuthParams() {
 }
 
 export function hostedUiLogout(): void {
+  // Cognito logout_uri must be on the app client's allow list; localhost landing (:5175)
+  // is a different origin from admin/onboarding (:5173/:5174), so skip Hosted UI logout locally.
+  if (isLocalViteHost()) {
+    redirectToLanding();
+    return;
+  }
   const logout = import.meta.env.VITE_OIDC_LOGOUT_URL;
   const id = clientId();
-  if (!logout || !id) return;
-  window.location.assign(
-    `${logout}?${new URLSearchParams({ client_id: id, logout_uri: redirectUri() }).toString()}`,
+  if (!logout || !id) {
+    redirectToLanding();
+    return;
+  }
+  window.location.replace(
+    `${logout}?${new URLSearchParams({ client_id: id, logout_uri: landingUrl() }).toString()}`,
   );
 }

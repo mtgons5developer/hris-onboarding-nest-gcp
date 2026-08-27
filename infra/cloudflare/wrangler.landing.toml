@@ -1,0 +1,2 @@
+name = "hris-landing"
+pages_build_output_dir = "../../apps/web-landing/dist"

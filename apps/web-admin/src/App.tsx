@@ -6,6 +6,7 @@ import {
   consumeAuthCodeIfPresent,
   hostedUiLogout,
   oidcConfigured,
+  redirectToLanding,
   showDevBypass,
 } from './oidc';
 
@@ -139,40 +140,103 @@ function Login({ bootError, onAuthed }: { bootError: string; onAuthed: (me: Me) 
   }
 
   return (
-    <div className="login">
-      <h1>HRIS Admin</h1>
-      <p className="muted">Day-1 access · Cognito Hosted UI · groups hr_admin / manager / system_admin.</p>
-      <button type="button" onClick={() => void hostedUi()} disabled={!oidcConfigured()} style={{ marginTop: 16 }}>
-        Sign in with Cognito
-      </button>
-      {!oidcConfigured() && (
-        <p className="error">Rebuild with VITE_OIDC_AUTHORIZE_URL / VITE_OIDC_CLIENT_ID (see .env.example).</p>
-      )}
-      {localFallback && (
-        <>
-          <p className="muted" style={{ marginTop: 24 }}>
-            Local only: Keycloak password grant or seed tokens.
-          </p>
-          <form onSubmit={oidc} style={{ display: 'grid', gap: 8, marginTop: 8 }}>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-            <button type="submit">Sign in with Keycloak</button>
-          </form>
-          <div style={{ display: 'grid', gap: 8, marginTop: 16 }}>
-            {DEV_LOGINS.map((d) => (
-              <button key={d.token} className="ghost" data-testid={`login-${d.token}`} onClick={() => pick(d.token)}>
-                Continue as {d.label}
-              </button>
-            ))}
+    <div className="auth-page auth-page--admin">
+      <aside className="auth-brand" aria-hidden="true">
+        <div className="auth-brand__inner">
+          <div className="auth-brand__logo">
+            <span className="auth-brand__mark">A</span>
+            <div>
+              <strong>A24 HRIS Lab</strong>
+              <span>Admin console</span>
+            </div>
           </div>
-        </>
-      )}
-      {(error || bootError) && <p className="error">{error || bootError}</p>}
+          <h1 className="auth-brand__headline">
+            Day-one access, <em>managed</em>
+          </h1>
+          <p className="auth-brand__lead">
+            Review onboarding cases, activate hires, and audit every step — for HR admins, managers, and
+            system operators.
+          </p>
+          <div className="auth-brand__badges">
+            <span className="stack-badge">NestJS</span>
+            <span className="stack-badge">Cognito OIDC</span>
+            <span className="stack-badge">PostgreSQL</span>
+          </div>
+        </div>
+      </aside>
+      <main className="auth-main">
+        <div className="auth-card">
+          <p className="auth-eyebrow">Sign in</p>
+          <h2>HRIS Admin</h2>
+          <p className="auth-lead muted">
+            Cognito Hosted UI · groups <code>hr_admin</code> / <code>manager</code> / <code>system_admin</code>
+          </p>
+          <button
+            type="button"
+            className="btn-primary btn-full"
+            onClick={() => void hostedUi()}
+            disabled={!oidcConfigured()}
+          >
+            Sign in with Cognito
+          </button>
+          {!oidcConfigured() && (
+            <p className="error" role="alert">
+              Rebuild with VITE_OIDC_AUTHORIZE_URL / VITE_OIDC_CLIENT_ID (see .env.example).
+            </p>
+          )}
+          {localFallback && (
+            <div className="auth-dev">
+              <div className="auth-divider">
+                <span>Local development</span>
+              </div>
+              <p className="muted">Keycloak password grant or seed tokens.</p>
+              <form onSubmit={oidc} className="auth-form">
+                <label className="field">
+                  <span className="field-label">Email</span>
+                  <input
+                    id="admin-email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="username"
+                  />
+                </label>
+                <label className="field">
+                  <span className="field-label">Password</span>
+                  <input
+                    id="admin-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                  />
+                </label>
+                <button type="submit" className="btn-secondary btn-full">
+                  Sign in with Keycloak
+                </button>
+              </form>
+              <div className="auth-dev-buttons">
+                {DEV_LOGINS.map((d) => (
+                  <button
+                    key={d.token}
+                    type="button"
+                    className="btn-ghost btn-full"
+                    data-testid={`login-${d.token}`}
+                    onClick={() => pick(d.token)}
+                  >
+                    Continue as {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {(error || bootError) && (
+            <p className="error" role="alert">
+              {error || bootError}
+            </p>
+          )}
+        </div>
+        <p className="auth-footer muted">A24 HRIS Lab · Emapta staff-aug demo</p>
+      </main>
     </div>
   );
 }
@@ -704,10 +768,11 @@ export default function App() {
     <Shell
       me={me}
       onLogout={() => {
-        const oidc = Boolean(getToken() && !getToken()!.startsWith('dev:'));
+        const token = getToken();
+        const oidc = Boolean(token && !token.startsWith('dev:'));
         setToken(null);
-        setMe(null);
         if (oidc) hostedUiLogout();
+        else redirectToLanding();
       }}
     />
   );

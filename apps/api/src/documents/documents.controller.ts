@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   Post,
   Put,
@@ -29,6 +30,13 @@ export class DocumentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   register(@Body() dto: RegisterDocumentDto, @CurrentUser() user: User) {
     return this.documents.register(dto, user);
+  }
+
+  @Get(':id/download-url')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.hr_admin, UserRole.manager)
+  downloadUrl(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.documents.getDownloadUrl(id, user);
   }
 
   @Put(':id/upload')

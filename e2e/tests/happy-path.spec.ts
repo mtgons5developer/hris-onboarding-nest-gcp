@@ -34,6 +34,7 @@ test('invite → complete → upload → submit → approve', async ({ page, req
           taskId: task.id,
           filename: 'id-card.txt',
           contentType: 'text/plain',
+          sizeBytes: Buffer.byteLength('synthetic-id-document'),
         },
       });
       expect(slot.ok()).toBeTruthy();

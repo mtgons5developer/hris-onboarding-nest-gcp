@@ -87,6 +87,7 @@ Flutter callbacks on `hris-mobile` (do not add these to `hris-web`): `hris://aut
 | `authorize_url` | `VITE_OIDC_AUTHORIZE_URL` |
 | `token_url` | `OIDC_TOKEN_URL`, `VITE_OIDC_TOKEN_URL` |
 | `logout_url` | `VITE_OIDC_LOGOUT_URL` |
+| — | `VITE_LANDING_URL` (post-sign-out redirect; default `https://getlakbay.com`) |
 
 Local Docker (Keycloak still in Compose; bypass is localhost-only):
 
@@ -109,6 +110,7 @@ VITE_OIDC_ISSUER=https://cognito-idp.ap-southeast-1.amazonaws.com/ap-southeast-1
 VITE_OIDC_AUTHORIZE_URL=https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/authorize
 VITE_OIDC_TOKEN_URL=https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/token
 VITE_OIDC_LOGOUT_URL=https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/logout
+VITE_LANDING_URL=https://getlakbay.com
 ```
 
 Local Vite can keep `VITE_API_BASE_URL=http://localhost:3000` and `VITE_AUTH_DEV_BYPASS=true` so Harper still appears on localhost only.
@@ -124,6 +126,15 @@ Local Vite can keep `VITE_API_BASE_URL=http://localhost:3000` and `VITE_AUTH_DEV
 
 If the Hosted UI errors `redirect_mismatch`, add the exact origin (no trailing slash) under Cognito → User pools → **hris-lab** → **App integration** → **hris-web** → **Allowed callback URLs** / **Allowed sign-out URLs**.
 
+**Sign-out redirect to landing:** Admin and onboarding SPAs pass `logout_uri` to the Hosted UI logout endpoint pointing at the landing page (`https://getlakbay.com` in production; `http://localhost:5175` when running Vite on localhost). Add these to **Allowed sign-out URLs** on **hris-web** (keep existing admin/onboarding callback and sign-out URLs unchanged):
+
+```
+https://getlakbay.com
+http://localhost:5175
+```
+
+Console: Cognito → User pools → **hris-lab** → **App integration** → **App clients** → **hris-web** → **Hosted UI** → **Allowed sign-out URLs** → **Add sign-out URL** for each line above → **Save changes**.
+
 Put users in Cognito groups named exactly like `UserRole`. Lab users (email sign-in, password `LabPass123!`):
 
 | Email | Group |
@@ -134,6 +145,61 @@ Put users in Cognito groups named exactly like `UserRole`. Lab users (email sign
 | `sysadmin@lab.local` | `system_admin` |
 
 Cognito is the AWS-native Entra stand-in. Keycloak remains the closer **enterprise IdP** story for interviews.
+
+## Amazon S3 document uploads (lab)
+
+Terraform: **`infra/aws-s3/`** — bucket (default name `hris-lab-uploads-<account-id>`), **SSE-S3**, block public access, **30-day lifecycle** on prefix `uploads/`, IAM policy for Nest (`PutObject` / `GetObject` / `DeleteObject` / `HeadObject` on `uploads/*`).
+
+**Not applied by default.** Run manually when you have AWS credentials (same lab account as Cognito):
+
+```bash
+cd infra/aws-s3
+cp terraform.tfvars.example terraform.tfvars   # optional
+terraform init
+terraform plan
+terraform apply
+terraform output bucket_name
+terraform output region
+```
+
+Create access keys for IAM user `hris-lab-nest-uploads` (if `create_iam_user = true`):
+
+```bash
+aws iam create-access-key --user-name hris-lab-nest-uploads --region ap-southeast-1
+```
+
+### Map S3 outputs → Nest env
+
+| Setting | Env var |
+|---------|---------|
+| `bucket_name` output | `S3_BUCKET` |
+| `region` output | `AWS_REGION` |
+| Lab access key | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (never commit) |
+| Driver | `STORAGE_DRIVER=s3` |
+
+Presigned URL TTL (optional): `S3_SIGNED_URL_TTL_SECONDS`, `S3_DOWNLOAD_URL_TTL_SECONDS` (default 900).
+
+Local/offline dev keeps `STORAGE_DRIVER=local` and `LOCAL_UPLOAD_DIR` — no AWS required.
+
+### Quota and lifecycle
+
+| Rule | Where |
+|------|--------|
+| **30-day object TTL** | S3 lifecycle on `uploads/*` |
+| **100 MB per employee** | Nest `DocumentsService` + `size_bytes` on `documents_meta` |
+| **10 MB max per file** | Nest validation on register / local PUT |
+
+S3 deletes bytes after 30 days; **Postgres metadata rows remain** for audit unless you add a cleanup job later.
+
+### Verify upload (Flutter / web)
+
+1. Apply S3 Terraform and set Nest env (`STORAGE_DRIVER=s3`, bucket, region, keys).
+2. Run migration: `npm run prisma:migrate -w @hris/api`
+3. Restart Nest. Register returns a **presigned S3 PUT URL** (not localhost).
+4. Mobile/web: `POST /api/v1/documents` with `sizeBytes`, then `PUT` to `uploadUrl` with `Content-Type` header (same flow as GCS).
+5. HR download (S3 only): `GET /api/v1/documents/:id/download-url` → presigned GET.
+
+Interview one-liner: *“Onboarding docs land in a private S3 bucket with SSE and a 30-day lifecycle; Nest issues presigned PUTs and enforces a 100 MB per-employee quota in Postgres because S3 can’t do per-user caps.”*
 
 ### Recreate users / callbacks (CLI or console)
 

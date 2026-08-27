@@ -5,6 +5,7 @@ import {
   consumeAuthCodeIfPresent,
   hostedUiLogout,
   oidcConfigured,
+  redirectToLanding,
   showDevBypass,
 } from './oidc';
 
@@ -88,43 +89,101 @@ export default function App() {
   }
 
   function logout() {
-    const oidcSession = Boolean(getToken() && !getToken()!.startsWith('dev:'));
+    const token = getToken();
+    const oidcSession = Boolean(token && !token.startsWith('dev:'));
     setToken(null);
-    setMe(null);
     if (oidcSession) hostedUiLogout();
+    else redirectToLanding();
   }
 
   if (!ready) return null;
   if (!me) {
     return (
-      <div className="login">
-        <h1>Welcome aboard</h1>
-        <p className="muted">Day-1 access · Sign in as Luis Reyes (employee) via Amazon Cognito.</p>
-        <button type="button" onClick={() => void hostedUi()} disabled={!oidcConfigured()} style={{ margin: '16px 0' }}>
-          Sign in with Cognito
-        </button>
-        {!oidcConfigured() && (
-          <p className="error">Rebuild with VITE_OIDC_AUTHORIZE_URL / VITE_OIDC_CLIENT_ID (see .env.example).</p>
-        )}
-        {localFallback && (
-          <>
-            <p className="muted">Local only: Keycloak user luis.reyes@lab.local · LabPass123!</p>
-            <form onSubmit={oidc} style={{ display: 'grid', gap: 8, margin: '16px 0' }}>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-              <button type="submit">Sign in with Keycloak</button>
-            </form>
-            <button className="ghost" data-testid="dev-login" onClick={login}>
-              Continue as Luis Reyes (dev token)
+      <div className="auth-page auth-page--onboard">
+        <aside className="auth-brand" aria-hidden="true">
+          <div className="auth-brand__inner">
+            <div className="auth-brand__logo">
+              <span className="auth-brand__mark">A</span>
+              <div>
+                <strong>A24 HRIS Lab</strong>
+                <span>Onboarding portal</span>
+              </div>
+            </div>
+            <h1 className="auth-brand__headline">
+              Welcome aboard, <em>new hire</em>
+            </h1>
+            <p className="auth-brand__lead">
+              Complete your day-one checklist, upload documents, and track progress — all in one place before
+              your first day.
+            </p>
+            <div className="auth-brand__badges">
+              <span className="stack-badge">Day-1 checklist</span>
+              <span className="stack-badge">Document upload</span>
+              <span className="stack-badge">Cognito OIDC</span>
+            </div>
+          </div>
+        </aside>
+        <main className="auth-main">
+          <div className="auth-card">
+            <p className="auth-eyebrow">Employee sign-in</p>
+            <h2>Welcome aboard</h2>
+            <p className="auth-lead muted">Sign in with Amazon Cognito to access your onboarding checklist.</p>
+            <button
+              type="button"
+              className="btn-primary btn-full"
+              onClick={() => void hostedUi()}
+              disabled={!oidcConfigured()}
+            >
+              Sign in with Cognito
             </button>
-          </>
-        )}
-        {error && <p className="error">{error}</p>}
+            {!oidcConfigured() && (
+              <p className="error" role="alert">
+                Rebuild with VITE_OIDC_AUTHORIZE_URL / VITE_OIDC_CLIENT_ID (see .env.example).
+              </p>
+            )}
+            {localFallback && (
+              <div className="auth-dev">
+                <div className="auth-divider">
+                  <span>Local development</span>
+                </div>
+                <p className="muted">Keycloak user luis.reyes@lab.local · LabPass123!</p>
+                <form onSubmit={oidc} className="auth-form">
+                  <label className="field">
+                    <span className="field-label">Email</span>
+                    <input
+                      id="onboard-email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="username"
+                    />
+                  </label>
+                  <label className="field">
+                    <span className="field-label">Password</span>
+                    <input
+                      id="onboard-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                  </label>
+                  <button type="submit" className="btn-secondary btn-full">
+                    Sign in with Keycloak
+                  </button>
+                </form>
+                <button type="button" className="btn-ghost btn-full" data-testid="dev-login" onClick={login}>
+                  Continue as Luis Reyes (dev token)
+                </button>
+              </div>
+            )}
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+          <p className="auth-footer muted">A24 HRIS Lab · Emapta staff-aug demo</p>
+        </main>
       </div>
     );
   }
@@ -184,6 +243,7 @@ function Checklist({
           taskId: task.id,
           filename: file.name,
           contentType: file.type || 'application/octet-stream',
+          sizeBytes: file.size,
         }),
       });
       await putBinary(slot.uploadUrl, file);

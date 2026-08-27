@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hris_onboarding/config.dart';
+import 'package:hris_onboarding/debug_log.dart';
 import 'package:hris_onboarding/models.dart';
 import 'package:hris_onboarding/oidc.dart';
 
@@ -35,6 +36,24 @@ void main() {
     });
   });
 
+  group('sanitizeForLog', () {
+    test('keeps dev tokens readable', () {
+      expect(sanitizeForLog('Bearer dev:employee'), 'Bearer dev:employee');
+    });
+
+    test('redacts JWT-shaped strings', () {
+      const jwt =
+          'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+      expect(sanitizeForLog(jwt), 'Bearer eyJ…(jwt)');
+    });
+
+    test('truncates very long lines', () {
+      final long = 'x' * 700;
+      expect(sanitizeForLog(long).length, lessThan(610));
+      expect(sanitizeForLog(long).endsWith('…'), isTrue);
+    });
+  });
+
   test('PKCE S256 matches RFC 7636 appendix B', () {
     const verifier = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
     expect(s256Challenge(verifier), 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM');
@@ -45,6 +64,51 @@ void main() {
     expect(AppConfig.oidcClientId, '4ij7jqehds0m6s1ubss1aj7710');
     expect(AppConfig.oidcRedirectUri, 'hris://auth');
     expect(AppConfig.oidcAuthorizeUrl, contains('hris-lab-mtgons5'));
+    expect(AppConfig.oidcAuthorizeUrl, isNot(contains('identity_provider')));
+  });
+
+  test('formatOidcRedirectError surfaces Cognito login_pages_unavailable', () {
+    expect(
+      formatOidcRedirectError('login_pages_unavailable', null),
+      contains('managed login style'),
+    );
+    expect(
+      formatOidcRedirectError('access_denied', 'User cancelled'),
+      'User cancelled',
+    );
+  });
+
+  test('Me role helpers route employee vs admin portals', () {
+    const employee = Me(
+      id: '1',
+      email: 'luis@lab.local',
+      displayName: 'Luis Reyes',
+      role: 'employee',
+    );
+    const hr = Me(
+      id: '2',
+      email: 'hr@lab.local',
+      displayName: 'Harper Reyes',
+      role: 'hr_admin',
+    );
+    const manager = Me(
+      id: '3',
+      email: 'maya@lab.local',
+      displayName: 'Maya Santos',
+      role: 'manager',
+    );
+    expect(employee.isEmployee, isTrue);
+    expect(employee.isAdmin, isFalse);
+    expect(employee.portalLabel, 'Onboarding portal');
+    expect(hr.isAdmin, isTrue);
+    expect(manager.isAdmin, isTrue);
+    expect(hr.portalLabel, 'Admin console');
+  });
+
+  test('showDevBypass is false on production apiBase', () {
+    expect(AppConfig.showDevBypass('http://localhost:3000'), isTrue);
+    expect(AppConfig.showDevBypass('http://192.168.0.4:3000'), isTrue);
+    expect(AppConfig.showDevBypass(AppConfig.productionApiBase), isFalse);
   });
 
   test('case JSON groups employee vs manager tasks and access fields', () {

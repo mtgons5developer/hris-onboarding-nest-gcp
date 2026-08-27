@@ -1,0 +1,4 @@
+region          = "ap-southeast-1"
+# bucket_name   = "hris-lab-uploads-custom"
+create_iam_user = true
+iam_user_name   = "hris-lab-nest-uploads"

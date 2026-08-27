@@ -1,5 +1,5 @@
 # Deploy Vite portals to Cloudflare Pages. Requires CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN.
-# Apex: getlakbay.com. Attach admin.getlakbay.com and onboarding.getlakbay.com in the dashboard.
+# Apex: getlakbay.com → hris-landing. admin / onboarding subdomains unchanged.
 # Token: least-privilege Pages Edit — see docs/PRODUCTION_CLOUDFLARE.md (do not use the Agent Token).
 # Build bakes VITE_API_BASE_URL (not VITE_API_URL). Secret optional; defaults to https://api.getlakbay.com.
 
@@ -31,10 +31,12 @@ jobs:
           VITE_OIDC_AUTHORIZE_URL: https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/authorize
           VITE_OIDC_TOKEN_URL: https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/oauth2/token
           VITE_OIDC_LOGOUT_URL: https://hris-lab-mtgons5.auth.ap-southeast-1.amazoncognito.com/logout
+          VITE_LANDING_URL: https://getlakbay.com
           VITE_AUTH_DEV_BYPASS: "false"
         run: |
           npm run build -w @hris/web-admin
           npm run build -w @hris/web-onboarding
+          npm run build -w @hris/web-landing
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -45,3 +47,8 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy apps/web-onboarding/dist --project-name=hris-onboarding
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/web-landing/dist --project-name=hris-landing
