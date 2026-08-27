@@ -1,5 +1,32 @@
-const ADMIN_URL = 'https://admin.getlakbay.com/';
-const ONBOARDING_URL = 'https://onboarding.getlakbay.com/';
+function isLocalHost(): boolean {
+  const host = window.location.hostname;
+  return host === 'localhost' || host === '127.0.0.1';
+}
+
+function resolvePortalUrl(
+  envValue: string | undefined,
+  localDefault: string,
+  productionDefault: string,
+): string {
+  if (envValue) return envValue;
+  return isLocalHost() ? localDefault : productionDefault;
+}
+
+function adminUrl(): string {
+  return resolvePortalUrl(
+    import.meta.env.VITE_ADMIN_URL,
+    'http://localhost:5173',
+    'https://admin.getlakbay.com',
+  );
+}
+
+function onboardingUrl(): string {
+  return resolvePortalUrl(
+    import.meta.env.VITE_ONBOARDING_URL,
+    'http://localhost:5174',
+    'https://onboarding.getlakbay.com',
+  );
+}
 
 const FEATURES = [
   {
@@ -93,6 +120,9 @@ function IconArrow() {
 }
 
 export default function App() {
+  const ADMIN_URL = adminUrl();
+  const ONBOARDING_URL = onboardingUrl();
+
   return (
     <div className="page">
       <header className="nav">
