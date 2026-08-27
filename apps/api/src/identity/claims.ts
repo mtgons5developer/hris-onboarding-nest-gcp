@@ -18,7 +18,7 @@ export function roleFromClaims(payload: Record<string, unknown>): UserRole | und
   return undefined;
 }
 
-/** Cognito access tokens use `client_id` instead of `aud`. ID tokens use `aud`. */
+/** Cognito access tokens use `client_id`; ID tokens use `aud`. Keycloak uses `azp` / `aud`. */
 export function audienceMatches(payload: Record<string, unknown>, expected: string): boolean {
   const allowed = expected
     .split(',')
@@ -30,12 +30,22 @@ export function audienceMatches(payload: Record<string, unknown>, expected: stri
   if (typeof aud === 'string') candidates.push(aud);
   if (Array.isArray(aud)) candidates.push(...aud.map(String));
   if (typeof payload.client_id === 'string') candidates.push(payload.client_id);
+  if (typeof payload.azp === 'string') candidates.push(payload.azp);
   return candidates.some((c) => allowed.includes(c));
 }
 
 export function emailFromClaims(payload: Record<string, unknown>): string | undefined {
   for (const value of [payload.email, payload.username, payload['cognito:username']]) {
     if (typeof value === 'string' && value.includes('@')) return value;
+  }
+  return undefined;
+}
+
+/** Keycloak access tokens may omit `sub`; ID tokens and Cognito JWTs include it. */
+export function subFromClaims(payload: Record<string, unknown>): string | undefined {
+  if (typeof payload.sub === 'string' && payload.sub.trim()) return payload.sub;
+  for (const value of [payload.preferred_username, payload.email, payload.username, payload['cognito:username']]) {
+    if (typeof value === 'string' && value.trim()) return value;
   }
   return undefined;
 }

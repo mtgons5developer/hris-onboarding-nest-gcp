@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../document_view.dart';
 import '../hris_client.dart';
 import '../models.dart';
 import '../session.dart';
@@ -80,6 +81,18 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         bytes: bytes,
       ),
     );
+  }
+
+  Future<void> _deleteDoc(String docId) async {
+    await _run(() => _api.deleteDocument(docId));
+  }
+
+  Future<void> _viewDoc(String docId) async {
+    await _run(() async {
+      final downloadUrl = await _api.getDocumentDownloadUrl(docId);
+      if (!mounted) return;
+      await openDocument(context: context, client: _api, downloadUrl: downloadUrl);
+    });
   }
 
   @override
@@ -218,10 +231,19 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                       ),
                       for (var i = 0; i < c.mine.length; i++) ...[
                         if (i > 0) const Divider(height: 1, color: line),
-                        _TaskRow(
-                          task: c.mine[i],
-                          onComplete: () => _run(() => _api.completeTask(c.mine[i].id)),
-                          onUpload: () => _uploadId(c.mine[i]),
+                        Builder(
+                          builder: (context) {
+                            final task = c.mine[i];
+                            final docs = c.documents.where((d) => d.taskId == task.id).toList();
+                            return _TaskRow(
+                              task: task,
+                              document: docs.isEmpty ? null : docs.last,
+                              onComplete: () => _run(() => _api.completeTask(task.id)),
+                              onUpload: () => _uploadId(task),
+                              onDelete: (docId) => _deleteDoc(docId),
+                              onView: (docId) => _viewDoc(docId),
+                            );
+                          },
                         ),
                       ],
                     ],
@@ -322,11 +344,17 @@ class _TaskRow extends StatelessWidget {
     required this.task,
     required this.onComplete,
     required this.onUpload,
+    required this.onDelete,
+    required this.onView,
+    this.document,
   });
 
   final OnboardingTask task;
+  final CaseDocument? document;
   final VoidCallback onComplete;
   final VoidCallback onUpload;
+  final void Function(String docId) onDelete;
+  final void Function(String docId) onView;
 
   @override
   Widget build(BuildContext context) {
@@ -341,10 +369,33 @@ class _TaskRow extends StatelessWidget {
                 Text(task.title, style: const TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 2),
                 Text(task.code, style: const TextStyle(color: muted, fontSize: 12)),
+                if (task.isIdDoc && document != null) ...[
+                  const SizedBox(height: 2),
+                  Text(document!.originalFilename, style: const TextStyle(color: muted, fontSize: 12)),
+                ],
               ],
             ),
           ),
-          if (task.canAct)
+          if (task.isIdDoc && document != null)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton(
+                  key: const Key('view-id'),
+                  onPressed: () => onView(document!.id),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                  child: const Text('View'),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  key: const Key('delete-id'),
+                  onPressed: () => onDelete(document!.id),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                  child: const Text('Delete'),
+                ),
+              ],
+            )
+          else if (task.canAct)
             task.isIdDoc
                 ? OutlinedButton(
                     key: const Key('upload-id'),

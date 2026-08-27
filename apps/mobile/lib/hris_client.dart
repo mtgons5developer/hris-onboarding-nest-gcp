@@ -41,6 +41,7 @@ class HrisClient {
       final res = switch (method) {
         'POST' => await _http.post(uri, headers: headers, body: body),
         'PATCH' => await _http.patch(uri, headers: headers, body: body),
+        'DELETE' => await _http.delete(uri, headers: headers, body: body),
         _ => await _http.get(uri, headers: headers),
       };
       log.api(method.toUpperCase(), uri.toString(), status: res.statusCode, detail: res.body);
@@ -95,6 +96,18 @@ class HrisClient {
       method: 'POST',
       body: jsonEncode({'reviewStatus': reviewStatus}),
     );
+  }
+
+  Future<void> deleteDocument(String docId) async {
+    await _json<dynamic>(
+      '/api/v1/documents/$docId',
+      method: 'DELETE',
+    );
+  }
+
+  Future<String> getDocumentDownloadUrl(String docId) async {
+    final json = await _json<Map<String, dynamic>>('/api/v1/documents/$docId/download-url');
+    return json['downloadUrl'] as String;
   }
 
   Future<void> accept(String caseId) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../document_view.dart';
 import '../hris_client.dart';
 import '../models.dart';
 import '../session.dart';
@@ -77,6 +78,27 @@ class _AdminCaseDetailScreenState extends State<AdminCaseDetailScreen> {
     try {
       await action();
       await _reload();
+    } catch (e) {
+      if (!mounted) return;
+      if (await widget.session.handleApiError(e)) {
+        if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+        return;
+      }
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _viewDoc(String docId) async {
+    setState(() {
+      _error = null;
+      _busy = true;
+    });
+    try {
+      final downloadUrl = await _api.getDocumentDownloadUrl(docId);
+      if (!mounted) return;
+      await openDocument(context: context, client: _api, downloadUrl: downloadUrl);
     } catch (e) {
       if (!mounted) return;
       if (await widget.session.handleApiError(e)) {
@@ -262,11 +284,15 @@ class _AdminCaseDetailScreenState extends State<AdminCaseDetailScreen> {
                             _StatusBadge(d.reviewStatus),
                           ],
                         ),
-                        if (_isHr) ...[
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: [
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            OutlinedButton(
+                              onPressed: _busy ? null : () => _viewDoc(d.id),
+                              child: const Text('View'),
+                            ),
+                            if (_isHr) ...[
                               OutlinedButton(
                                 onPressed: _busy
                                     ? null
@@ -279,9 +305,15 @@ class _AdminCaseDetailScreenState extends State<AdminCaseDetailScreen> {
                                     : () => _run(() => _api.reviewDocument(d.id, 'rejected')),
                                 child: const Text('Reject file'),
                               ),
+                              OutlinedButton(
+                                onPressed: _busy
+                                    ? null
+                                    : () => _run(() => _api.deleteDocument(d.id)),
+                                child: const Text('Delete'),
+                              ),
                             ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ],
                     ],
                   ),

@@ -1,17 +1,19 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
   Put,
   Req,
+  Res,
   UseGuards,
   RawBodyRequest,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { ReviewStatus, User, UserRole } from '@prisma/client';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { DocumentsService } from './documents.service';
 import { RegisterDocumentDto } from './dto/register-document.dto';
 import { ReviewDocumentDto } from './dto/review-document.dto';
@@ -34,9 +36,21 @@ export class DocumentsController {
 
   @Get(':id/download-url')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.hr_admin, UserRole.manager)
   downloadUrl(@Param('id') id: string, @CurrentUser() user: User) {
     return this.documents.getDownloadUrl(id, user);
+  }
+
+  @Get(':id/download')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async download(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Res() res: Response,
+  ) {
+    const file = await this.documents.serveDownload(id, user);
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader('Content-Disposition', `inline; filename="${file.filename.replace(/"/g, '')}"`);
+    res.send(file.data);
   }
 
   @Put(':id/upload')
@@ -48,6 +62,12 @@ export class DocumentsController {
     }
     const buffer = Buffer.concat(chunks);
     return this.documents.saveUpload(id, buffer, req.headers['content-type'] ?? 'application/octet-stream');
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  remove(@Param('id') id: string, @CurrentUser() user: User) {
+    return this.documents.remove(id, user);
   }
 
   @Post(':id/review')

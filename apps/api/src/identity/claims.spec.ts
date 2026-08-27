@@ -1,4 +1,4 @@
-import { audienceMatches, emailFromClaims, roleFromClaims } from './claims';
+import { audienceMatches, emailFromClaims, roleFromClaims, subFromClaims } from './claims';
 
 describe('roleFromClaims', () => {
   it('reads Keycloak realm roles', () => {
@@ -32,6 +32,12 @@ describe('audienceMatches', () => {
     );
   });
 
+  it('accepts Keycloak azp among comma-separated audiences', () => {
+    expect(
+      audienceMatches({ aud: 'account', azp: 'hris-web' }, '604evnknhtitgpltjdo90ghm7l,hris-web,account'),
+    ).toBe(true);
+  });
+
   it('rejects unknown clients', () => {
     expect(audienceMatches({ client_id: 'other' }, '604evnknhtitgpltjdo90ghm7l')).toBe(false);
   });
@@ -48,5 +54,17 @@ describe('emailFromClaims', () => {
 
   it('ignores Cognito UUID usernames', () => {
     expect(emailFromClaims({ username: '79da553c-8081-70a7-6078-9d87a1cc6449' })).toBeUndefined();
+  });
+});
+
+describe('subFromClaims', () => {
+  it('prefers sub when present', () => {
+    expect(subFromClaims({ sub: 'uuid-sub', preferred_username: 'hr@lab.local' })).toBe('uuid-sub');
+  });
+
+  it('falls back to preferred_username for Keycloak access tokens', () => {
+    expect(subFromClaims({ preferred_username: 'hr@lab.local', email: 'hr@lab.local' })).toBe(
+      'hr@lab.local',
+    );
   });
 });

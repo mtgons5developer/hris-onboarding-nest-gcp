@@ -1,8 +1,29 @@
 # HRIS lab document uploads (Amazon S3)
 
-Terraform for onboarding document storage: **SSE-S3**, **block public access**, **30-day lifecycle** on `uploads/*`, and an IAM policy for the Nest API (`PutObject`, `GetObject`, `DeleteObject`, `HeadObject`).
+Terraform for onboarding document storage: **SSE-S3**, **block public access**, **CORS** for browser presigned uploads, **30-day lifecycle** on `uploads/*`, and an IAM policy for the Nest API (`PutObject`, `GetObject`, `DeleteObject`, `HeadObject`).
 
 Region defaults to **`ap-southeast-1`** (same lab account as `infra/aws-cognito/`).
+
+## CORS (browser uploads)
+
+Web onboarding (Vite / Cloudflare Pages) uploads via **presigned PUT** directly to S3. The bucket must allow those origins or the browser blocks the request (Flutter native does not need CORS).
+
+Allowed origins (see `aws_s3_bucket_cors_configuration` in `main.tf` / `cors.json`):
+
+- `http://localhost:5173`, `http://localhost:5174`
+- `https://admin.getlakbay.com`, `https://onboarding.getlakbay.com`, `https://getlakbay.com`
+- `https://hris-admin.pages.dev`, `https://hris-onboarding.pages.dev`
+
+Methods: `GET`, `PUT`, `HEAD`, `POST`. Headers: `*`. Expose: `ETag`. MaxAge: `3000`.
+
+To apply CORS without a full Terraform run:
+
+```bash
+aws s3api put-bucket-cors \
+  --bucket "$(terraform output -raw bucket_name)" \
+  --cors-configuration file://cors.json \
+  --region ap-southeast-1
+```
 
 ## Prerequisites
 

@@ -1,6 +1,6 @@
 import { Navigate, NavLink, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState, type FormEvent } from 'react';
-import { api, DEV_LOGINS, getToken, loginWithOidc, setToken } from './api';
+import { api, DEV_LOGINS, getToken, loginWithOidc, setToken, viewDocument } from './api';
 import {
   beginHostedUiLogin,
   consumeAuthCodeIfPresent,
@@ -389,6 +389,16 @@ function CaseDetail({ me }: { me: Me }) {
     await reload();
   }
 
+  async function deleteDoc(docId: string) {
+    setError('');
+    try {
+      await api(`/api/v1/documents/${docId}`, { method: 'DELETE' });
+      await reload();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   if (!c) return <p>Loading…</p>;
   const done = c.tasks.filter((t) => t.status === 'done' || t.status === 'waived').length;
   const linkedRole = c.employee.user?.role ?? 'employee';
@@ -499,6 +509,13 @@ function CaseDetail({ me }: { me: Me }) {
           <div key={d.id} className="row" style={{ marginBottom: 8 }}>
             <span>{d.originalFilename}</span>
             <span className={badgeClass(d.reviewStatus)}>{d.reviewStatus}</span>
+            <button
+              className="ghost"
+              data-testid="view-doc"
+              onClick={() => void viewDocument(d.id).catch((e) => setError((e as Error).message))}
+            >
+              View
+            </button>
             {isHr && (
               <>
                 <button className="ghost" onClick={() => reviewDoc(d.id, 'approved')}>
@@ -506,6 +523,9 @@ function CaseDetail({ me }: { me: Me }) {
                 </button>
                 <button className="ghost" onClick={() => reviewDoc(d.id, 'rejected')}>
                   Reject file
+                </button>
+                <button className="ghost" data-testid="delete-doc" onClick={() => void deleteDoc(d.id)}>
+                  Delete
                 </button>
               </>
             )}

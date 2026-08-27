@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { api, getToken, loginWithOidc, putBinary, setToken } from './api';
+import { api, getToken, loginWithOidc, putBinary, setToken, viewDocument } from './api';
 import {
   beginHostedUiLogin,
   consumeAuthCodeIfPresent,
@@ -11,6 +11,7 @@ import {
 
 type Me = { id: string; email: string; displayName: string; role: string; idpSub?: string };
 type Task = { id: string; code: string; title: string; status: string; assigneeRole: string };
+type Doc = { id: string; taskId?: string | null; originalFilename: string; reviewStatus: string };
 type Case = {
   id: string;
   status: string;
@@ -24,6 +25,7 @@ type Case = {
   };
   offer?: { title: string; startDate: string } | null;
   tasks: Task[];
+  documents: Doc[];
 };
 
 export default function App() {
@@ -203,6 +205,7 @@ function Checklist({
   setError: (s: string) => void;
 }) {
   const [c, setC] = useState<Case | null>(null);
+  const [caseReady, setCaseReady] = useState(false);
 
   async function load() {
     const cases = await api<Case[]>('/api/v1/onboarding/cases');
@@ -210,7 +213,17 @@ function Checklist({
   }
 
   useEffect(() => {
-    load().catch((e) => setError(e.message));
+    let cancelled = false;
+    void load()
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setCaseReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function accept() {
@@ -253,6 +266,16 @@ function Checklist({
     }
   }
 
+  async function deleteDoc(docId: string) {
+    setError('');
+    try {
+      await api(`/api/v1/documents/${docId}`, { method: 'DELETE' });
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   async function submit() {
     if (!c) return;
     setError('');
@@ -262,6 +285,15 @@ function Checklist({
     } catch (e) {
       setError((e as Error).message);
     }
+  }
+
+  // Avoid flashing the empty "Sign out" shell while cases are still loading after auth.
+  if (!caseReady) {
+    return (
+      <div className="wrap">
+        <p className="muted">Loading your checklist…</p>
+      </div>
+    );
   }
 
   if (!c) {
@@ -342,35 +374,61 @@ function Checklist({
       )}
       <div className="card">
         <p className="section-label">Your checklist · employee</p>
-        {mine.map((t) => (
-          <div className="task" key={t.id}>
-            <div>
-              <strong>{t.title}</strong>
-              <div className="muted">{t.code}</div>
-            </div>
-            <div>
-              {t.status === 'pending' || t.status === 'rejected' ? (
-                t.code === 'ID_DOC' ? (
-                  <input
-                    aria-label="Upload ID"
-                    data-testid="upload-id"
-                    type="file"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void upload(t, f);
-                    }}
-                  />
+        {mine.map((t) => {
+          const taskDocs = (c.documents ?? []).filter((d) => d.taskId === t.id);
+          const latestDoc = taskDocs[taskDocs.length - 1];
+          return (
+            <div className="task" key={t.id}>
+              <div>
+                <strong>{t.title}</strong>
+                <div className="muted">{t.code}</div>
+                {t.code === 'ID_DOC' && latestDoc && (
+                  <div className="muted" style={{ marginTop: 4 }}>
+                    {latestDoc.originalFilename}
+                  </div>
+                )}
+              </div>
+              <div>
+                {t.code === 'ID_DOC' && latestDoc ? (
+                  <>
+                    <button
+                      className="ghost"
+                      data-testid="view-id"
+                      onClick={() => void viewDocument(latestDoc.id).catch((e) => setError((e as Error).message))}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="ghost"
+                      data-testid="delete-id"
+                      onClick={() => void deleteDoc(latestDoc.id)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : t.status === 'pending' || t.status === 'rejected' ? (
+                  t.code === 'ID_DOC' ? (
+                    <input
+                      aria-label="Upload ID"
+                      data-testid="upload-id"
+                      type="file"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void upload(t, f);
+                      }}
+                    />
+                  ) : (
+                    <button data-testid={`complete-${t.code}`} onClick={() => complete(t.id)}>
+                      Mark done
+                    </button>
+                  )
                 ) : (
-                  <button data-testid={`complete-${t.code}`} onClick={() => complete(t.id)}>
-                    Mark done
-                  </button>
-                )
-              ) : (
-                <span className="badge">{t.status}</span>
-              )}
+                  <span className="badge">{t.status}</span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {others.length > 0 && (
         <div className="card">

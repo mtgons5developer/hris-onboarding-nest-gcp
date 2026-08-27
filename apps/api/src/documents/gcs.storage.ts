@@ -37,4 +37,22 @@ export class GcsStorage implements StoragePort {
       method: 'PUT',
     };
   }
+
+  async createDownloadUrl(objectKey: string): Promise<string> {
+    const bucketName = this.config.get<string>('GCS_BUCKET');
+    if (!bucketName) {
+      throw new Error('GCS_BUCKET is required when STORAGE_DRIVER=gcs');
+    }
+    const ttl = Number(this.config.get('GCS_SIGNED_URL_TTL_SECONDS') ?? 900);
+    const [url] = await this.storage.bucket(bucketName).file(objectKey).getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + ttl * 1000,
+    });
+    return url;
+  }
+
+  async deleteObject(bucket: string, objectKey: string): Promise<void> {
+    await this.storage.bucket(bucket).file(objectKey).delete({ ignoreNotFound: true });
+  }
 }

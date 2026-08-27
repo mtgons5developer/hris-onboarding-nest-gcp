@@ -61,6 +61,27 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
   }
 }
 
+# Browser PUT via presigned URL (Vite/Pages). Flutter native does not need CORS.
+resource "aws_s3_bucket_cors_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "PUT", "HEAD", "POST"]
+    allowed_origins = [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "https://admin.getlakbay.com",
+      "https://onboarding.getlakbay.com",
+      "https://hris-admin.pages.dev",
+      "https://hris-onboarding.pages.dev",
+      "https://getlakbay.com",
+    ]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+}
+
 resource "aws_iam_policy" "nest_uploads" {
   name        = "hris-lab-nest-uploads"
   description = "Presigned upload/download for Nest HRIS document adapter (uploads/* prefix)"

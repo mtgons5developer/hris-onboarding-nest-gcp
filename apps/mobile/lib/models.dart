@@ -38,17 +38,20 @@ class CaseDocument {
     required this.id,
     required this.originalFilename,
     required this.reviewStatus,
+    this.taskId,
   });
 
   final String id;
   final String originalFilename;
   final String reviewStatus;
+  final String? taskId;
 
   factory CaseDocument.fromJson(Map<String, dynamic> json) {
     return CaseDocument(
       id: json['id'] as String,
       originalFilename: json['originalFilename'] as String,
       reviewStatus: json['reviewStatus'] as String,
+      taskId: json['taskId'] as String?,
     );
   }
 }

@@ -61,8 +61,7 @@ export class S3Storage implements StoragePort {
     return getSignedUrl(this.client, command, { expiresIn: ttl });
   }
 
-  async deleteObject(objectKey: string): Promise<void> {
-    const bucket = this.bucketName();
+  async deleteObject(bucket: string, objectKey: string): Promise<void> {
     await this.client.send(new DeleteObjectCommand({ Bucket: bucket, Key: objectKey }));
   }
 }

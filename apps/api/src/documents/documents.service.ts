@@ -3,8 +3,9 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
-import { ReviewStatus, User } from '@prisma/client';
+import { ReviewStatus, TaskStatus, User, UserRole } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -99,7 +100,27 @@ export class DocumentsService {
       throw new BadRequestException('Download URLs are not available for this storage driver');
     }
     const downloadUrl = await this.storage.createDownloadUrl(meta.gcsObjectKey);
-    return { downloadUrl, expiresInSeconds: Number(process.env.S3_DOWNLOAD_URL_TTL_SECONDS ?? 900) };
+    const ttl = Number(
+      process.env.S3_DOWNLOAD_URL_TTL_SECONDS ??
+        process.env.GCS_SIGNED_URL_TTL_SECONDS ??
+        900,
+    );
+    return { downloadUrl, expiresInSeconds: ttl };
+  }
+
+  async serveDownload(id: string, actor: User) {
+    const meta = await this.prisma.documentMeta.findUnique({ where: { id } });
+    if (!meta) throw new NotFoundException('Document not found');
+    await this.onboarding.getCase(meta.caseId, actor);
+    if (!this.storage.readObject) {
+      throw new BadRequestException('Direct download is not available for this storage driver');
+    }
+    const data = await this.storage.readObject(meta.gcsBucket, meta.gcsObjectKey);
+    return {
+      data,
+      contentType: meta.contentType,
+      filename: meta.originalFilename,
+    };
   }
 
   async review(id: string, reviewStatus: ReviewStatus, actor: User) {
@@ -118,5 +139,47 @@ export class DocumentsService {
       afterJson: { reviewStatus },
     });
     return updated;
+  }
+
+  async remove(id: string, actor: User) {
+    const meta = await this.prisma.documentMeta.findUnique({ where: { id } });
+    if (!meta) throw new NotFoundException('Document not found');
+
+    const isUploader = meta.uploadedByUserId === actor.id;
+    const isHr = actor.role === UserRole.hr_admin;
+    if (!isUploader && !isHr) {
+      throw new ForbiddenException('Only the uploader or HR admin can delete this document');
+    }
+    // Ensures case visibility (employee of case / manager / HR).
+    await this.onboarding.getCase(meta.caseId, actor);
+
+    await this.storage.deleteObject(meta.gcsBucket, meta.gcsObjectKey);
+    await this.prisma.documentMeta.delete({ where: { id } });
+
+    if (meta.taskId) {
+      const remaining = await this.prisma.documentMeta.count({
+        where: { taskId: meta.taskId },
+      });
+      if (remaining === 0) {
+        await this.prisma.onboardingTask.update({
+          where: { id: meta.taskId },
+          data: { status: TaskStatus.pending, completedAt: null },
+        });
+      }
+    }
+
+    await this.audit.append({
+      actorUserId: actor.id,
+      action: 'DOCUMENT_DELETED',
+      entityType: 'document',
+      entityId: id,
+      beforeJson: {
+        filename: meta.originalFilename,
+        caseId: meta.caseId,
+        taskId: meta.taskId,
+        sizeBytes: meta.sizeBytes,
+      },
+    });
+    return { ok: true, id };
   }
 }
