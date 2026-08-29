@@ -138,6 +138,9 @@ export default function App() {
             >
               Sign in with Cognito
             </button>
+            <p className="muted" style={{ margin: '0.75rem 0 0', fontSize: '0.875rem' }}>
+              Login will only be available Monday-Fridays 8am-8pm.
+            </p>
             {!oidcConfigured() && (
               <p className="error" role="alert">
                 Rebuild with VITE_OIDC_AUTHORIZE_URL / VITE_OIDC_CLIENT_ID (see .env.example).
